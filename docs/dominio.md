@@ -1,66 +1,163 @@
 ```mermaid
 classDiagram
 
+    %% =========================
+    %% USUARIOS
+    %% =========================
+
+    class Usuario {
+        +UUID id
+        +String nome
+        +String email
+        +StatusUsuario status
+        +ativar()
+        +desativar()
+    }
+
+    class Aluno {
+        +String matricula
+    }
+
+    class Professor {
+        +String registro
+    }
+
+    class Administrador {
+    }
+
     Usuario <|-- Aluno
     Usuario <|-- Professor
     Usuario <|-- Administrador
 
-    Usuario "1" --> "0..*" Reserva
-    Professor "1" --> "0..*" Laboratorio
-    Laboratorio "1" --> "0..*" Reserva
-    Laboratorio "1" --> "0..*" Equipamento
-    Reserva "1" --> "0..*" ReservaEquipamento
-    Equipamento "1" --> "0..*" ReservaEquipamento
-    Reserva "1" --> "0..1" Devolucao
-    Usuario "1" --> "0..*" RelatoProblema
-    Laboratorio "1" --> "0..*" RelatoProblema
-    Equipamento "0..1" --> "0..*" RelatoProblema
 
-    class Usuario {
-        id
-        nome
-        email
-    }
-
-    class Aluno
-    class Professor
-    class Administrador
+    %% =========================
+    %% LABORATORIO
+    %% =========================
 
     class Laboratorio {
-        id
-        nome
-        localizacao
-        capacidade
+        +UUID id
+        +String nome
+        +String localizacao
+        +Integer capacidade
+        +StatusLaboratorio status
+        +consultarDisponibilidade()
     }
+
+    Professor "0..*" --> "0..*" Laboratorio : responsavel
+
+
+    %% =========================
+    %% RESERVAS
+    %% =========================
 
     class Reserva {
-        id
-        inicio
-        fim
-        status
+        +UUID id
+        +DateTime inicio
+        +DateTime fim
+        +DateTime dataCriacao
+        +StatusReserva status
+        +confirmar()
+        +cancelar()
+        +iniciarUso()
+        +encerrar()
     }
+
+    Usuario "1" --> "0..*" Reserva : realiza
+    Laboratorio "1" --> "0..*" Reserva : recebe
+
+
+    %% =========================
+    %% EQUIPAMENTOS
+    %% =========================
 
     class Equipamento {
-        id
-        nome
-        descricao
-        quantidade
+        +UUID id
+        +String nome
+        +String descricao
+        +Integer quantidadeTotal
+        +StatusEquipamento status
     }
+
+    Laboratorio "1" --> "0..*" Equipamento : possui
+
+
+    %% =========================
+    %% RESERVA DE EQUIPAMENTO
+    %% =========================
 
     class ReservaEquipamento {
-        quantidade
+        +Integer quantidade
     }
+
+    Reserva "1" --> "0..*" ReservaEquipamento : inclui
+    Equipamento "1" --> "0..*" ReservaEquipamento : reservado
+
+
+    %% =========================
+    %% DEVOLUCAO
+    %% =========================
 
     class Devolucao {
-        id
-        data
-        observacao
+        +UUID id
+        +DateTime dataHora
+        +String observacao
     }
 
+    Reserva "1" --> "0..1" Devolucao : possui
+
+
+    %% =========================
+    %% RELATO DE PROBLEMA
+    %% =========================
+
     class RelatoProblema {
-        id
-        descricao
-        data
-        status
+        +UUID id
+        +String descricao
+        +DateTime dataHora
+        +StatusProblema status
+        +resolver()
+    }
+
+    Usuario "1" --> "0..*" RelatoProblema : registra
+    Laboratorio "1" --> "0..*" RelatoProblema : relacionado
+    Equipamento "0..1" --> "0..*" RelatoProblema : afetado
+
+
+    %% =========================
+    %% ENUMERACOES
+    %% =========================
+
+    class StatusUsuario {
+        <<enumeration>>
+        ATIVO
+        INATIVO
+    }
+
+    class StatusLaboratorio {
+        <<enumeration>>
+        DISPONIVEL
+        INDISPONIVEL
+    }
+
+    class StatusReserva {
+        <<enumeration>>
+        CONFIRMADA
+        EM_USO
+        ENCERRADA
+        CANCELADA
+    }
+
+    class StatusEquipamento {
+        <<enumeration>>
+        DISPONIVEL
+        INDISPONIVEL
+        MANUTENCAO
+    }
+
+    class StatusProblema {
+        <<enumeration>>
+        ABERTO
+        EM_ANALISE
+        RESOLVIDO
     }
 ```
