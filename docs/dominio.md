@@ -1,71 +1,66 @@
-## Diagrama de Classes
-
 ```mermaid
 classDiagram
 
-class Usuario {
-    +id
-    +nome
-    +email
-    +status
-}
+    Usuario <|-- Aluno
+    Usuario <|-- Professor
+    Usuario <|-- Administrador
 
-class Aluno
-class Professor
-class Administrador
+    Usuario "1" --> "0..*" Reserva
+    Professor "1" --> "0..*" Laboratorio
+    Laboratorio "1" --> "0..*" Reserva
+    Laboratorio "1" --> "0..*" Equipamento
+    Reserva "1" --> "0..*" ReservaEquipamento
+    Equipamento "1" --> "0..*" ReservaEquipamento
+    Reserva "1" --> "0..1" Devolucao
+    Usuario "1" --> "0..*" RelatoProblema
+    Laboratorio "1" --> "0..*" RelatoProblema
+    Equipamento "0..1" --> "0..*" RelatoProblema
 
-Usuario <|-- Aluno
-Usuario <|-- Professor
-Usuario <|-- Administrador
+    class Usuario {
+        id
+        nome
+        email
+    }
 
-class Laboratorio {
-    +id
-    +nome
-    +localizacao
-    +capacidade
-    +status
-}
+    class Aluno
+    class Professor
+    class Administrador
 
-class Reserva {
-    +id
-    +inicio
-    +fim
-    +status
-}
+    class Laboratorio {
+        id
+        nome
+        localizacao
+        capacidade
+    }
 
-class Equipamento {
-    +id
-    +nome
-    +descricao
-    +quantidade
-    +status
-}
+    class Reserva {
+        id
+        inicio
+        fim
+        status
+    }
 
-class ReservaEquipamento {
-    +quantidade
-}
+    class Equipamento {
+        id
+        nome
+        descricao
+        quantidade
+    }
 
-class Devolucao {
-    +id
-    +data
-    +observacao
-}
+    class ReservaEquipamento {
+        quantidade
+    }
 
-class RelatoProblema {
-    +id
-    +descricao
-    +data
-    +status
-}
+    class Devolucao {
+        id
+        data
+        observacao
+    }
 
-Usuario "1" --> "0..*" Reserva : realiza
-Laboratorio "1" --> "0..*" Reserva : possui
-Professor "1" --> "0..*" Laboratorio : responsavel
-Laboratorio "1" --> "0..*" Equipamento : possui
-Reserva "1" --> "0..*" ReservaEquipamento : inclui
-Equipamento "1" --> "0..*" ReservaEquipamento : utilizado
-Reserva "1" --> "0..1" Devolucao : gera
-Usuario "1" --> "0..*" RelatoProblema : registra
-Laboratorio "1" --> "0..*" RelatoProblema : possui
-Equipamento "0..1" --> "0..*" RelatoProblema : relacionado
+    class RelatoProblema {
+        id
+        descricao
+        data
+        status
+    }
 ```
