@@ -20,13 +20,13 @@ Este documento registra as principais decisões arquiteturais e escolhas de tecn
   - **Positivas:** Altíssimo desempenho (similar a Node.js/Go), validação de dados nativa via Pydantic e geração automática e nativa da documentação Swagger (atendendo diretamente o RNF-05).
   - **Negativas:** Requer que o ambiente de produção suporte ASGI (ex: Uvicorn).
 
-## ADR 003: Banco de Dados e ORM (SQL Server + SQLAlchemy)
+## ADR 003: Banco de Dados e ORM (SQLite + SQLAlchemy)
 - **Status:** Aceito
-- **Contexto:** O domínio do sistema (Usuários, Reservas, Equipamentos, Laboratórios) é altamente estruturado e relacional, necessitando de integridade referencial forte (ACID).
-- **Decisão:** O banco de dados escolhido é o **Microsoft SQL Server**. A comunicação do backend com o banco será feita através do ORM **SQLAlchemy** utilizando o driver `pyodbc`.
+- **Contexto:** O domínio do sistema (Usuários, Reservas, Equipamentos, Laboratórios) é relacional. Para otimizar a velocidade de desenvolvimento inicial e remover a complexidade de infraestrutura e drivers externos, optou-se por um banco embarcado.
+- **Decisão:** O banco de dados escolhido é o **SQLite**. A comunicação do backend com o banco será feita através do ORM **SQLAlchemy**.
 - **Consequências:**
-  - **Positivas:** Segurança e confiabilidade robustas em ambiente corporativo/acadêmico. O SQLAlchemy abstrai o SQL puro, acelerando o desenvolvimento e evitando SQL Injection.
-  - **Negativas:** O servidor onde o backend for hospedado obrigatoriamente precisará ter o *ODBC Driver for SQL Server* instalado no sistema operacional.
+  - **Positivas:** Zero configuração de servidor (o banco é um arquivo `.db` local), excelente para desenvolvimento rápido e testes. Como usamos o SQLAlchemy, a lógica de negócio fica blindada e o banco pode ser trocado futuramente alterando apenas a string de conexão.
+  - **Negativas:** Não é ideal para alta concorrência de escrita. Se o sistema escalar para centenas de usuários simultâneos no futuro, exigirá migração para um banco cliente-servidor (PostgreSQL/SQL Server).
 
 ## ADR 004: Stack do Frontend (React + Vite)
 - **Status:** Aceito
