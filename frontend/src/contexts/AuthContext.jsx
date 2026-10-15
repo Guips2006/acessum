@@ -5,7 +5,7 @@ export const AuthContext = createContext();
 
 // 1. Deixe a baseURL apenas com o link principal do Codespaces (sem o /api no final)
 const api = axios.create({
-  baseURL: 'https://animated-couscous-r4vjqpvg7jxxc57g4-8000.app.github.dev',
+  baseURL: 'https://opulent-space-doodle-4j45g4gx59j5h94v-8000.app.github.dev',
 });
 
 export const AuthProvider = ({ children }) => {
@@ -26,10 +26,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (email, senha) => {
+ const login = async (email, senha) => {
     try {
-      // 3. Coloque o /api direto aqui também
-      const response = await api.post('/api/auth/login', { email, senha }); 
+      const response = await api.post('/api/auth/login', { 
+        email: email, 
+        senha: senha 
+      }); 
+      
       const { token, ...dadosUsuario } = response.data;
       
       localStorage.setItem('token', token);
@@ -37,7 +40,10 @@ export const AuthProvider = ({ children }) => {
       setUser(dadosUsuario);
       return { success: true };
     } catch (error) {
-      return { success: false, message: error.response?.data?.detail || 'Erro ao logar' };
+      return { 
+        success: false, 
+        message: error.response?.data?.detail || 'Erro ao iniciar sessão' 
+      };
     }
   };
 
