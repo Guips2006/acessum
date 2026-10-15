@@ -95,7 +95,7 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **Open relacionado:** OPEN-08, OPEN-09, OPEN-15
 
 ### SPEC-003 — Gestão de Laboratórios (Administrador)
-- **Objetivo:** permitir que o Admin cadastre e exclua laboratórios.
+- **Objetivo:** permitir que o Admin cadastre, ative e desative laboratórios.
 - **Valor entregue:** recurso reservável passa a existir no sistema.
 - **RF relacionados:** a criar
 - **RB relacionadas:** RN03, RN07
