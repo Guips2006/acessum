@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
 import models
@@ -11,7 +11,7 @@ SECRET_KEY = "chave-secreta-simples-para-teste"
 ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+security = HTTPBearer()
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -25,12 +25,16 @@ def create_token(user_id: str, perfil: str):
     to_encode = {"sub": user_id, "perfil": perfil, "exp": vencimento}
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def obter_usuario_logado(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def obter_usuario_logado(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Token inválido ou expirado",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Extrai a string do token fornecida no Swagger ou no Frontend
+    token = credentials.credentials
+    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")

@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
-import GestaoUsuarios from './GestaoUsuarios'; // Importando a nova tela
+import GestaoUsuarios from './GestaoUsuarios'; 
+import GestaoLaboratorios from './GestaoLaboratorios';
 
 export default function App() {
   const { user, login, logout, loading } = useContext(AuthContext);
@@ -29,6 +30,11 @@ export default function App() {
           <GestaoUsuarios voltar={() => setTelaAtiva('MENU')} />
         )}
 
+        {/* SE A TELA ATIVA FOR "GESTAO_LABORATORIOS", MOSTRA O NOVO COMPONENTE */}
+        {telaAtiva === 'GESTAO_LABORATORIOS' && (
+          <GestaoLaboratorios voltar={() => setTelaAtiva('MENU')} />
+        )}
+
         {/* SE A TELA ATIVA FOR "MENU", MOSTRA OS BOTÕES NORMAIS */}
         {telaAtiva === 'MENU' && (
           <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ccc', borderRadius: '8px' }}>
@@ -52,7 +58,12 @@ export default function App() {
                   >
                     ⚙️ Gerenciar Usuários
                   </li>
-                  <li style={{ color: 'red', fontWeight: 'bold' }}>🏢 Cadastrar Laboratórios</li>
+                  <li 
+                    style={{ color: 'red', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => setTelaAtiva('GESTAO_LABORATORIOS')}
+                  >
+                    🏢 Cadastrar Laboratórios
+                  </li>
                 </>
               )}
             </ul>
@@ -61,7 +72,7 @@ export default function App() {
 
         <button 
           onClick={logout} 
-          style={{ padding: '10px 20px', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+          style={{ padding: '10px 20px', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '20px' }}>
           Sair do Sistema
         </button>
       </div>
