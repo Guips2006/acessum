@@ -14,3 +14,17 @@ class UsuarioResponse(UsuarioBase):
 
     class Config:
         from_attributes = True
+
+class LaboratorioBase(BaseModel):
+    nome: str
+    capacidade: int
+
+class LaboratorioCriar(LaboratorioBase):
+    pass
+
+class LaboratorioResponse(LaboratorioBase):
+    id: str
+    status: str
+
+    class Config:
+        from_attributes = True
