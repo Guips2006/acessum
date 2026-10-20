@@ -17,6 +17,15 @@ export default function App() {
     const result = await login(email, senha);
     if (!result.success) setErro(result.message);
   };
+  const handleLogout = () => {
+    // 1. Chama a função de logout do contexto (remove token, altera estado do user)
+    logout(); 
+    
+    // 2. Limpa os estados locais do formulário
+    setEmail('');
+    setSenha('');
+    setErro(''); // Opcional, mas recomendado para limpar mensagens de erro antigas
+  };
 
   // TELA QUANDO LOGADO
   if (user) {
@@ -71,7 +80,7 @@ export default function App() {
         )}
 
         <button 
-          onClick={logout} 
+          onClick={handleLogout} 
           style={{ padding: '10px 20px', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '20px' }}>
           Sair do Sistema
         </button>
