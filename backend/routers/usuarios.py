@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
@@ -19,8 +21,11 @@ def listar_usuarios(db: Session = Depends(get_db)):
 @router.post("/", response_model=schemas.UsuarioResponse)
 def criar_usuario(usuario: schemas.UsuarioCriar, db: Session = Depends(get_db)):
     """Cadastra um novo usuário (Aluno, Professor ou Administrador)."""
-    if db.query(models.Usuario).filter(models.Usuario.email == usuario.email).first():
-        raise HTTPException(status_code=400, detail="E-mail já cadastrado.")
+    email_existente = db.query(models.Usuario).filter(
+        func.lower(models.Usuario.email) == usuario.email
+    ).first()
+    if email_existente:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="E-mail já cadastrado.")
         
     novo_usuario = models.Usuario(
         nome=usuario.nome,
@@ -30,11 +35,21 @@ def criar_usuario(usuario: schemas.UsuarioCriar, db: Session = Depends(get_db)):
         status="ATIVO"
     )
     db.add(novo_usuario)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="E-mail já cadastrado.",
+        ) from exc
     db.refresh(novo_usuario)
     return novo_usuario
 
-@router.patch("/{usuario_id}/status")
+@router.patch(
+    "/{usuario_id}/status",
+    response_model=schemas.UsuarioStatusResponse,
+)
 def alternar_status(usuario_id: str, db: Session = Depends(get_db)):
     """Ativa ou inativa um usuário (Soft Delete)."""
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()

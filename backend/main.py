@@ -1,15 +1,53 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager, suppress
+from datetime import datetime, timezone
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from database import engine, Base, get_db
-from routers import auth, usuarios, laboratorios, equipamentos
+from database import engine, Base, get_db, SessionLocal
+from migrations import aplicar_migracoes
+from routers import auth, usuarios, laboratorios, equipamentos, problemas, reservas
 import models
 from auth_utils import get_password_hash
+from reservas_lifecycle import marcar_reservas_no_show
+
+logger = logging.getLogger(__name__)
+INTERVALO_NO_SHOW_SEGUNDOS = 60
+
+
+def processar_reservas_no_show() -> int:
+    with SessionLocal() as db:
+        agora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+        return marcar_reservas_no_show(db, agora_utc)
+
+
+async def tarefa_no_show() -> None:
+    while True:
+        try:
+            await asyncio.to_thread(processar_reservas_no_show)
+        except SQLAlchemyError:
+            logger.exception("Falha ao marcar reservas expiradas como NO_SHOW.")
+        await asyncio.sleep(INTERVALO_NO_SHOW_SEGUNDOS)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    tarefa = asyncio.create_task(tarefa_no_show())
+    try:
+        yield
+    finally:
+        tarefa.cancel()
+        with suppress(asyncio.CancelledError):
+            await tarefa
 
 
 Base.metadata.create_all(bind=engine)
+aplicar_migracoes(engine)
 
-app = FastAPI(title="Acessum API")
+app = FastAPI(title="Acessum API", lifespan=lifespan)
 
 # --- CONFIGURAÇÃO DE CORS ATUALIZADA ---
 app.add_middleware(
@@ -24,6 +62,8 @@ app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(laboratorios.router)
 app.include_router(equipamentos.router)
+app.include_router(problemas.router)
+app.include_router(reservas.router)
 
 @app.get("/")
 def home():

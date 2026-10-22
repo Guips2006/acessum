@@ -290,7 +290,7 @@ Este documento apresenta os casos de uso disponíveis para o perfil Aluno no sis
 
 ## UC-08 — Realizar check-in
 
-**Ator principal:** Aluno
+**Ator principal:** Aluno ou Professor titular da reserva
 
 **Objetivo:** Registrar o início da utilização do recurso reservado.
 
@@ -298,7 +298,7 @@ Este documento apresenta os casos de uso disponíveis para o perfil Aluno no sis
 
 - O aluno deve estar autenticado.
 - O aluno deve possuir uma reserva aprovada.
-- A reserva deve estar dentro da janela permitida para check-in.
+- O horário atual deve estar entre 15 minutos antes e 15 minutos depois do início agendado.
 
 ### Fluxo principal
 
@@ -314,17 +314,23 @@ Este documento apresenta os casos de uso disponíveis para o perfil Aluno no sis
 #### FA01 — Check-in fora da janela permitida
 
 1. O aluno solicita o check-in.
-2. O sistema verifica que o horário está fora da janela permitida.
-3. O sistema impede o check-in.
-4. O sistema informa ao aluno que o check-in não pode ser realizado naquele momento.
+2. O sistema verifica que ainda faltam mais de 15 minutos para o início agendado.
+3. O sistema impede o check-in sem alterar o status.
+4. O sistema informa ao aluno quando o check-in estará disponível.
 
-#### FA02 — Reserva não aprovada
+#### FA02 — No-show
+
+1. O aluno não realiza o check-in até 15 minutos depois do início agendado.
+2. O sistema altera automaticamente a reserva aprovada para `NO_SHOW`.
+3. Uma tentativa tardia de check-in é rejeitada e informa que o no-show foi registado.
+
+#### FA03 — Reserva não aprovada
 
 1. O aluno tenta realizar o check-in de uma reserva que não foi aprovada.
 2. O sistema impede o check-in.
 3. O sistema informa que a reserva não está aprovada.
 
-#### FA03 — Reserva inexistente ou inválida
+#### FA04 — Reserva inexistente ou inválida
 
 1. O sistema não encontra uma reserva válida associada ao aluno.
 2. O sistema impede o check-in.
@@ -345,32 +351,32 @@ Este documento apresenta os casos de uso disponíveis para o perfil Aluno no sis
 
 ## UC-09 — Encerrar utilização
 
-**Ator principal:** Aluno
+**Ator principal:** Aluno ou Professor titular da reserva
 
 **Objetivo:** Registrar o término da utilização do recurso reservado.
 
 ### Pré-condições
 
-- O aluno deve estar autenticado.
-- O aluno deve possuir uma reserva com status "Em uso".
+- O titular deve estar autenticado.
+- O titular deve possuir uma reserva com status "Em uso".
 
 ### Fluxo principal
 
-1. O aluno acessa a reserva em andamento.
-2. O aluno solicita o encerramento da utilização.
-3. O sistema registra a data e hora do encerramento.
-4. O sistema altera o status da reserva para "Concluída".
-5. O sistema registra o término da utilização.
+1. O titular acessa a reserva em andamento.
+2. O titular solicita o encerramento da utilização.
+3. O sistema valida que a reserva está em uso e pertence ao titular.
+4. O sistema registra a data e hora efetiva do encerramento.
+5. O sistema altera o status da reserva para "Concluída".
 
 ### Fluxos alternativos
 
-- Caso não exista uma reserva com status "Em uso", o sistema impede o encerramento da utilização.
+- Caso a reserva não pertença ao titular ou não esteja com status "Em uso", o sistema impede o encerramento.
 
 ### Pós-condições
 
 - A utilização do recurso é encerrada.
 - A reserva passa para o estado "Concluída".
-- A reserva pode fazer parte do histórico do aluno.
+- A reserva pode fazer parte do histórico do titular.
 
 ### Requisitos relacionados
 

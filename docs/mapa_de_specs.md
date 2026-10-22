@@ -37,12 +37,12 @@ Decisões já tomadas pela equipe e aplicadas neste mapa (resolvem ambiguidades 
 | ID | Decisão necessária |
 |---|---|
 | OPEN-01 | Mecanismo de aprovação de reservas: RF-05 a RF-08 sugerem que toda solicitação passa por análise; RB-03 sugere que só equipamento de uso controlado exige aprovação; README/personas sugerem reserva direta. |
-| OPEN-02 | Conjunto formal de estados da reserva: `requisitos.md` usa Pendente/Aprovada/Recusada/Em uso/Concluída/No-show; `dominio.md` usa CONFIRMADA/EM_USO/ENCERRADA/CANCELADA. A issue #13 do repositório trata disso e segue aberta. |
-| OPEN-03 | Se "devolver" (README/personas/entidade `Devolucao`) e "encerrar utilização" (RF-09) são a mesma ação ou ações distintas. |
+| OPEN-02 | Resolvido: estados da reserva são `PENDENTE`, `APROVADA`, `RECUSADA`, `EM_USO`, `CONCLUIDA`, `CANCELADA` e `NO_SHOW`. |
+| OPEN-03 | Resolvido: devolver e encerrar utilização são a mesma ação no MVP; a reserva passa para `CONCLUIDA`. |
 | OPEN-04 | Valor do limite de reservas futuras por aluno (RB-04); deve ser configurável. |
 | OPEN-05 | Prazo permitido para cancelamento de reserva (RB-05). |
-| OPEN-06 | Janela permitida para check-in (RB-06). |
-| OPEN-07 | Quem trata/resolve um `RelatoProblema` e o fluxo Aberto → Em análise → Resolvido; não há RF nem caso de uso para isso hoje. |
+| OPEN-06 | Resolvido: check-in permitido de 15 minutos antes até 15 minutos depois do início da reserva. |
+| OPEN-07 | Resolvido: o Administrador consulta os relatos e pode marcar o status como `RESOLVIDO`; os únicos estados são `ABERTO` e `RESOLVIDO`. |
 | OPEN-08 | Se "remover" usuário (UC06 Admin) é exclusão definitiva ou desativação (usando `StatusUsuario.INATIVO`, já existente no domínio). |
 | OPEN-09 | Se a definição de senha inicial (no cadastro pelo Admin) e a recuperação de senha esquecida entram no escopo. |
 | OPEN-10 | O modelo de domínio não tem atributo de "uso controlado" em `Equipamento`, necessário para RB-03. |
@@ -175,6 +175,19 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **Justificativa da posição:** opera sobre solicitações já registradas pela Spec anterior.
 - **Open relacionado:** OPEN-01, OPEN-02
 
+### SPEC-012 — Histórico de Reservas
+- **Objetivo:** permitir que o usuário consulte suas reservas passadas e atuais com status.
+- **Valor entregue:** visibilidade e controle sobre o próprio uso dos recursos.
+- **RF relacionados:** RF-10
+- **RB relacionadas:** —
+- **RNF aplicáveis:** —
+- **Caso de uso / fluxo:** UC-06 (Aluno)
+- **Entidades do modelo conceitual:** `Reserva`
+- **Drivers arquiteturais:** nenhum registrado
+- **ADRs:** nenhuma
+- **Dependências:** SPEC-007
+- **Justificativa da posição:** cria a interface de consulta onde os usuários acompanham suas reservas e podem iniciar o cancelamento.
+
 ### SPEC-009 — Cancelamento de Reserva
 - **Objetivo:** permitir que o usuário cancele uma reserva dentro do prazo permitido.
 - **Valor entregue:** flexibilidade para liberar o recurso quando não for mais utilizado.
@@ -185,8 +198,8 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **Entidades do modelo conceitual:** `Reserva`, `StatusReserva`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
-- **Dependências:** SPEC-007
-- **Justificativa da posição:** opera sobre reservas já existentes.
+- **Dependências:** SPEC-007, SPEC-012
+- **Justificativa da posição:** opera sobre reservas já existentes e integra a ação à interface do histórico.
 - **Open relacionado:** OPEN-05, OPEN-02
 
 ### SPEC-010 — Check-in e Início de Utilização
@@ -201,7 +214,8 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-008 (exige reserva aprovada)
 - **Justificativa da posição:** só faz sentido após a aprovação da reserva.
-- **Open relacionado:** OPEN-06, OPEN-02, OPEN-12
+- **Open relacionado:** OPEN-02
+- **Regra definida:** check-in permitido de 15 minutos antes até 15 minutos depois do início; após essa janela, a reserva passa automaticamente a `NO_SHOW`.
 
 ### SPEC-011 — Encerramento de Utilização / Devolução
 - **Objetivo:** registrar o término da utilização e liberar o recurso.
@@ -210,25 +224,12 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RB relacionadas:** —
 - **RNF aplicáveis:** —
 - **Caso de uso / fluxo:** UC-09 (Aluno), generalizado a Professor
-- **Entidades do modelo conceitual:** `Reserva`, `StatusReserva`, `Devolucao` (se distinta — ver OPEN-03)
+- **Entidades do modelo conceitual:** `Reserva`, `StatusReserva`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-010
 - **Justificativa da posição:** encerra o ciclo iniciado pelo check-in.
-- **Open relacionado:** OPEN-03, OPEN-02
-
-### SPEC-012 — Histórico de Reservas
-- **Objetivo:** permitir que o usuário consulte suas reservas passadas e atuais com status.
-- **Valor entregue:** visibilidade e controle sobre o próprio uso dos recursos.
-- **RF relacionados:** RF-10
-- **RB relacionadas:** —
-- **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-06 (Aluno)
-- **Entidades do modelo conceitual:** `Reserva`
-- **Drivers arquiteturais:** nenhum registrado
-- **ADRs:** nenhuma
-- **Dependências:** SPEC-007
-- **Justificativa da posição:** consulta somente leitura sobre dados já produzidos; não bloqueia nada, pode ser feita a qualquer momento depois de existirem reservas.
+- **Open relacionado:** OPEN-02
 
 ### SPEC-013 — Relato de Problemas
 - **Objetivo:** permitir que o usuário reporte problemas em laboratórios ou equipamentos.

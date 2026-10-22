@@ -1,46 +1,80 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, selectinload
 from database import get_db
 import models, schemas
-from auth_utils import exigir_perfil
+from auth_utils import exigir_perfil, obter_usuario_logado
 
-# Protege todas as rotas deste ficheiro para uso exclusivo do Administrador
-router = APIRouter(
-    prefix="/api/laboratorios",
-    tags=["Gestão de Laboratórios"],
-    dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))]
+router = APIRouter(prefix="/api/laboratorios", tags=["Laboratórios"])
+
+@router.get(
+    "/",
+    response_model=list[schemas.LaboratorioResponse],
+    dependencies=[Depends(obter_usuario_logado)],
 )
-
-@router.get("/", response_model=list[schemas.LaboratorioResponse])
 def listar_laboratorios(db: Session = Depends(get_db)):
-    """Retorna todos os laboratórios cadastrados."""
-    return db.query(models.Laboratorio).all()
+    """Lista os laboratórios para qualquer usuário autenticado."""
+    return (
+        db.query(models.Laboratorio)
+        .options(selectinload(models.Laboratorio.equipamentos))
+        .order_by(models.Laboratorio.nome)
+        .all()
+    )
 
-@router.post("/", response_model=schemas.LaboratorioResponse)
+@router.post(
+    "/",
+    response_model=schemas.LaboratorioResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+)
 def criar_laboratorio(lab: schemas.LaboratorioCriar, db: Session = Depends(get_db)):
     """Cadastra um novo laboratório."""
-    if db.query(models.Laboratorio).filter(models.Laboratorio.nome == lab.nome).first():
-        raise HTTPException(status_code=400, detail="Laboratório com este nome já existe.")
-        
+    nome_existente = db.query(models.Laboratorio).filter(
+        func.lower(models.Laboratorio.nome) == lab.nome.lower()
+    ).first()
+    if nome_existente:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Já existe um laboratório com este nome.",
+        )
+
     novo_lab = models.Laboratorio(
         nome=lab.nome,
         capacidade=lab.capacidade,
-        status="ATIVO"
+        status="ATIVO",
     )
     db.add(novo_lab)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Já existe um laboratório com este nome.",
+        ) from exc
     db.refresh(novo_lab)
     return novo_lab
 
-@router.patch("/{lab_id}/status")
+@router.patch(
+    "/{lab_id}/status",
+    response_model=schemas.LaboratorioStatusResponse,
+    dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+)
 def alternar_status_laboratorio(lab_id: str, db: Session = Depends(get_db)):
     """Ativa ou desativa um laboratório no sistema (Soft Delete)."""
     lab = db.query(models.Laboratorio).filter(models.Laboratorio.id == lab_id).first()
     if not lab:
-        raise HTTPException(status_code=404, detail="Laboratório não encontrado.")
-        
-    # Alterna entre ATIVO e INATIVO
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Laboratório não encontrado.",
+        )
+    if lab.status not in {"ATIVO", "INATIVO"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="O laboratório possui um status inválido e não pode ser alterado.",
+        )
+
     lab.status = "INATIVO" if lab.status == "ATIVO" else "ATIVO"
     db.commit()
-    
-    return {"mensagem": f"Status do laboratório alterado para {lab.status}."}
+    return {"id": lab.id, "novo_status": lab.status}

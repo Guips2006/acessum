@@ -6,115 +6,176 @@ export default function GestaoLaboratorios({ voltar }) {
   const [laboratorios, setLaboratorios] = useState([]);
   const [form, setForm] = useState({ nome: '', capacidade: '' });
   const [erro, setErro] = useState('');
+  const [sucesso, setSucesso] = useState('');
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [laboratorioEmAtualizacao, setLaboratorioEmAtualizacao] = useState(null);
 
   const carregarLaboratorios = async () => {
+    setCarregando(true);
+    setErro('');
     try {
       const response = await api.get('/api/laboratorios/');
       setLaboratorios(response.data);
     } catch (err) {
-      setErro('Erro ao carregar laboratórios.');
+      setErro(err.response?.data?.detail || 'Erro ao carregar laboratórios.');
+    } finally {
+      setCarregando(false);
     }
   };
 
   useEffect(() => {
     carregarLaboratorios();
-  }, []);
+  }, [api]);
 
   const criarLaboratorio = async (e) => {
     e.preventDefault();
+    setErro('');
+    setSucesso('');
+    setSalvando(true);
     try {
       await api.post('/api/laboratorios/', {
-        nome: form.nome,
-        capacidade: parseInt(form.capacidade)
+        nome: form.nome.trim(),
+        capacidade: Number(form.capacidade),
       });
       setForm({ nome: '', capacidade: '' });
-      setErro('');
-      carregarLaboratorios();
+      setSucesso('Laboratório cadastrado com sucesso.');
+      await carregarLaboratorios();
     } catch (err) {
       setErro(err.response?.data?.detail || 'Erro ao criar laboratório.');
+    } finally {
+      setSalvando(false);
     }
   };
 
-  const alternarStatus = async (id) => {
+  const alternarStatus = async (laboratorio) => {
+    const acao = laboratorio.status === 'ATIVO' ? 'inativar' : 'ativar';
+    if (!window.confirm(`Confirma ${acao} o laboratório "${laboratorio.nome}"?`)) return;
+
+    setErro('');
+    setSucesso('');
+    setLaboratorioEmAtualizacao(laboratorio.id);
     try {
-      await api.patch(`/api/laboratorios/${id}/status`);
-      carregarLaboratorios();
+      const response = await api.patch(`/api/laboratorios/${laboratorio.id}/status`);
+      setSucesso(`Status do laboratório atualizado para ${response.data.novo_status}.`);
+      await carregarLaboratorios();
     } catch (err) {
-      setErro('Erro ao alterar status do laboratório.');
+      setErro(err.response?.data?.detail || 'Erro ao alterar status do laboratório.');
+    } finally {
+      setLaboratorioEmAtualizacao(null);
     }
   };
 
   return (
-    <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px', marginTop: '20px' }}>
-      <button onClick={voltar} style={{ marginBottom: '20px' }}>⬅ Voltar ao Menu</button>
-      
-      <h2>Gestão de Laboratórios</h2>
-      {erro && <p style={{ color: 'red' }}>{erro}</p>}
+    <section style={{ marginTop: '20px', color: '#333333' }}>
+      <button
+        type="button"
+        onClick={voltar}
+        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
+      >
+        ← Voltar ao Menu
+      </button>
 
-      {/* FORMULÁRIO DE CADASTRO */}
-      <div style={{ marginBottom: '30px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '5px' }}>
+      <h2>Gestão de Laboratórios</h2>
+      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
+      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+
+      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h3>Cadastrar Novo Laboratório</h3>
-        <form onSubmit={criarLaboratorio} style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input 
-            placeholder="Nome do Laboratório (ex: Lab Info 1)" 
-            value={form.nome} 
-            onChange={e => setForm({...form, nome: e.target.value})} 
-            required 
-            style={{ padding: '8px', minWidth: '250px' }}
-          />
-          <input 
-            placeholder="Capacidade (Nº de máquinas/lugares)" 
-            type="number" 
-            min="1"
-            value={form.capacidade} 
-            onChange={e => setForm({...form, capacidade: e.target.value})} 
-            required 
-            style={{ padding: '8px' }}
-          />
-          <button type="submit" style={{ padding: '8px 15px' }}>Salvar</button>
+        <form onSubmit={criarLaboratorio} style={{ display: 'grid', gap: '12px' }}>
+          <label>
+            Nome do laboratório
+            <input
+              name="nome"
+              value={form.nome}
+              onChange={e => setForm({ ...form, nome: e.target.value })}
+              maxLength={100}
+              required
+              style={estiloInput}
+            />
+          </label>
+          <label>
+            Capacidade (lugares)
+            <input
+              name="capacidade"
+              type="number"
+              min="1"
+              step="1"
+              value={form.capacidade}
+              onChange={e => setForm({ ...form, capacidade: e.target.value })}
+              required
+              style={estiloInput}
+            />
+          </label>
+          <button type="submit" disabled={salvando} style={estiloBotaoPrimario}>
+            {salvando ? 'A guardar...' : 'Salvar laboratório'}
+          </button>
         </form>
       </div>
 
-      {/* LISTA DE LABORATÓRIOS */}
-      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#eee' }}>
-            <th style={{ padding: '8px' }}>Nome</th>
-            <th>Capacidade</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {laboratorios.length === 0 ? (
-            <tr><td colSpan="4" style={{ padding: '8px', textAlign: 'center' }}>Nenhum laboratório cadastrado.</td></tr>
-          ) : (
-            laboratorios.map(lab => (
-              <tr key={lab.id} style={{ borderBottom: '1px solid #ddd' }}>
-                <td style={{ padding: '8px' }}>{lab.nome}</td>
-                <td>{lab.capacidade} lugares</td>
-                <td style={{ color: lab.status === 'ATIVO' ? 'green' : 'red', fontWeight: 'bold' }}>
-                  {lab.status}
-                </td>
-                <td>
-                  <button 
-                    onClick={() => alternarStatus(lab.id)} 
-                    style={{ 
-                      padding: '5px 10px', 
-                      cursor: 'pointer',
-                      backgroundColor: lab.status === 'ATIVO' ? '#ffcccc' : '#ccffcc',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  >
-                    {lab.status === 'ATIVO' ? 'Desativar' : 'Ativar'}
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+      <section aria-labelledby="lista-laboratorios-titulo">
+        <h3 id="lista-laboratorios-titulo">Laboratórios cadastrados</h3>
+        {carregando ? (
+          <p role="status">A carregar laboratórios...</p>
+        ) : laboratorios.length === 0 ? (
+          <p>Nenhum laboratório cadastrado.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {laboratorios.map(laboratorio => (
+              <article
+                key={laboratorio.id}
+                style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+              >
+                <h4 style={{ margin: '0 0 8px' }}>{laboratorio.nome}</h4>
+                <p style={{ margin: '4px 0' }}>Capacidade: {laboratorio.capacidade} lugares</p>
+                <p style={{ margin: '4px 0 12px', color: laboratorio.status === 'ATIVO' ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
+                  Status: {laboratorio.status}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => alternarStatus(laboratorio)}
+                  disabled={laboratorioEmAtualizacao === laboratorio.id}
+                  style={{
+                    ...estiloBotaoStatus,
+                    backgroundColor: laboratorio.status === 'ATIVO' ? '#dc3545' : '#28a745',
+                  }}
+                >
+                  {laboratorioEmAtualizacao === laboratorio.id
+                    ? 'A atualizar...'
+                    : laboratorio.status === 'ATIVO' ? 'Inativar laboratório' : 'Ativar laboratório'}
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </section>
   );
 }
+
+const estiloInput = {
+  display: 'block',
+  boxSizing: 'border-box',
+  width: '100%',
+  marginTop: '6px',
+  padding: '10px',
+  border: '1px solid #cccccc',
+  borderRadius: '8px',
+};
+
+const estiloBotaoPrimario = {
+  padding: '10px 14px',
+  color: '#ffffff',
+  backgroundColor: '#0056b3',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+};
+
+const estiloBotaoStatus = {
+  padding: '10px 14px',
+  color: '#ffffff',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+};

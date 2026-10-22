@@ -267,8 +267,8 @@ Os casos de uso do professor utilizam as regras de negócio já definidas em `re
 | RB-03 | Equipamento de uso controlado | UC03, UC04 |
 | RB-04 | Limite de reservas | Não aplicável diretamente ao Professor |
 | RB-05 | Cancelamento | Não aplicável diretamente ao Professor |
-| RB-06 | Janela de check-in | Não aplicável diretamente ao Professor |
-| RB-07 | No-show | Não aplicável diretamente ao Professor |
+| RB-06 | Janela de check-in | Aplica-se às reservas de que o Professor é titular |
+| RB-07 | No-show | Aplica-se às reservas de que o Professor é titular |
 
 ---
 

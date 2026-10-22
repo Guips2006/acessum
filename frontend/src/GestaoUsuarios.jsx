@@ -6,91 +6,205 @@ export default function GestaoUsuarios({ voltar }) {
   const [usuarios, setUsuarios] = useState([]);
   const [form, setForm] = useState({ nome: '', email: '', perfil: 'ALUNO', senha: '' });
   const [erro, setErro] = useState('');
+  const [sucesso, setSucesso] = useState('');
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [usuarioEmAtualizacao, setUsuarioEmAtualizacao] = useState(null);
 
   const carregarUsuarios = async () => {
+    setCarregando(true);
+    setErro('');
     try {
       const response = await api.get('/api/usuarios/');
       setUsuarios(response.data);
     } catch (err) {
-      setErro('Erro ao carregar usuários.');
+      setErro(err.response?.data?.detail || 'Erro ao carregar usuários.');
+    } finally {
+      setCarregando(false);
     }
   };
 
   useEffect(() => {
     carregarUsuarios();
-  }, []);
+  }, [api]);
 
   const criarUsuario = async (e) => {
     e.preventDefault();
+    setErro('');
+    setSucesso('');
+    setSalvando(true);
     try {
       await api.post('/api/usuarios/', form);
-      setForm({ nome: '', email: '', perfil: 'ALUNO', senha: '' }); // Limpa o form
-      setErro('');
-      carregarUsuarios(); // Atualiza a lista
+      setForm({ nome: '', email: '', perfil: 'ALUNO', senha: '' });
+      setSucesso('Usuário cadastrado com sucesso.');
+      await carregarUsuarios();
     } catch (err) {
       setErro(err.response?.data?.detail || 'Erro ao criar usuário.');
+    } finally {
+      setSalvando(false);
     }
   };
 
-  const alternarStatus = async (id) => {
+  const alternarStatus = async (usuario) => {
+    const acao = usuario.status === 'ATIVO' ? 'inativar' : 'ativar';
+    if (!window.confirm(`Confirma ${acao} o acesso de ${usuario.nome}?`)) return;
+
+    setErro('');
+    setSucesso('');
+    setUsuarioEmAtualizacao(usuario.id);
     try {
-      await api.patch(`/api/usuarios/${id}/status`);
-      carregarUsuarios(); // Atualiza a lista
+      const response = await api.patch(`/api/usuarios/${usuario.id}/status`);
+      setSucesso(`Status atualizado para ${response.data.novo_status}.`);
+      await carregarUsuarios();
     } catch (err) {
-      setErro('Erro ao alterar status.');
+      setErro(err.response?.data?.detail || 'Erro ao alterar status do usuário.');
+    } finally {
+      setUsuarioEmAtualizacao(null);
     }
   };
 
   return (
-    <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px', marginTop: '20px' }}>
-      <button onClick={voltar} style={{ marginBottom: '20px' }}>⬅ Voltar ao Menu</button>
-      
-      <h2>Gestão de Usuários</h2>
-      {erro && <p style={{ color: 'red' }}>{erro}</p>}
+    <section style={{ marginTop: '20px', color: '#333333' }}>
+      <button
+        type="button"
+        onClick={voltar}
+        style={{ marginBottom: '20px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e0e0e0', cursor: 'pointer' }}
+      >
+        ← Voltar ao Menu
+      </button>
 
-      {/* FORMULÁRIO DE CADASTRO */}
-      <div style={{ marginBottom: '30px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '5px' }}>
-        <h3>Cadastrar Novo</h3>
-        <form onSubmit={criarUsuario} style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input placeholder="Nome" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} required />
-          <input placeholder="E-mail" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
-          <input placeholder="Senha" type="password" value={form.senha} onChange={e => setForm({...form, senha: e.target.value})} required />
-          <select value={form.perfil} onChange={e => setForm({...form, perfil: e.target.value})}>
+      <h2>Gestão de Usuários</h2>
+      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
+      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+
+      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <h3>Cadastrar novo usuário</h3>
+        <form onSubmit={criarUsuario} style={{ display: 'grid', gap: '12px' }}>
+          <label>
+            Nome
+            <input
+              name="nome"
+              autoComplete="name"
+              value={form.nome}
+              onChange={e => setForm({ ...form, nome: e.target.value })}
+              maxLength={100}
+              required
+              style={estiloInput}
+            />
+          </label>
+          <label>
+            E-mail
+            <input
+              name="email"
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              maxLength={100}
+              required
+              style={estiloInput}
+            />
+          </label>
+          <label>
+            Senha
+            <input
+              name="senha"
+              type="password"
+              autoComplete="new-password"
+              value={form.senha}
+              onChange={e => setForm({ ...form, senha: e.target.value })}
+              maxLength={72}
+              required
+              style={estiloInput}
+            />
+          </label>
+          <label>
+            Perfil
+            <select
+              name="perfil"
+              value={form.perfil}
+              onChange={e => setForm({ ...form, perfil: e.target.value })}
+              style={estiloInput}
+            >
             <option value="ALUNO">Aluno</option>
             <option value="PROFESSOR">Professor</option>
             <option value="ADMINISTRADOR">Administrador</option>
-          </select>
-          <button type="submit">Salvar</button>
+            </select>
+          </label>
+          <button
+            type="submit"
+            disabled={salvando}
+            style={estiloBotaoPrimario}
+          >
+            {salvando ? 'A guardar...' : 'Cadastrar usuário'}
+          </button>
         </form>
       </div>
 
-      {/* LISTA DE USUÁRIOS */}
-      <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#eee' }}>
-            <th style={{ padding: '8px' }}>Nome</th>
-            <th>E-mail</th>
-            <th>Perfil</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {usuarios.map(u => (
-            <tr key={u.id} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ padding: '8px' }}>{u.nome}</td>
-              <td>{u.email}</td>
-              <td>{u.perfil}</td>
-              <td style={{ color: u.status === 'ATIVO' ? 'green' : 'red' }}>{u.status}</td>
-              <td>
-                <button onClick={() => alternarStatus(u.id)}>
-                  {u.status === 'ATIVO' ? 'Desativar' : 'Ativar'}
+      <section aria-labelledby="lista-usuarios-titulo">
+        <h3 id="lista-usuarios-titulo">Usuários cadastrados</h3>
+        {carregando ? (
+          <p role="status">A carregar usuários...</p>
+        ) : usuarios.length === 0 ? (
+          <p>Nenhum usuário cadastrado.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {usuarios.map(usuario => (
+              <article
+                key={usuario.id}
+                style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+              >
+                <h4 style={{ margin: '0 0 8px' }}>{usuario.nome}</h4>
+                <p style={{ margin: '4px 0' }}>{usuario.email}</p>
+                <p style={{ margin: '4px 0' }}>Perfil: {usuario.perfil}</p>
+                <p style={{ margin: '4px 0 12px', color: usuario.status === 'ATIVO' ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
+                  Status: {usuario.status}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => alternarStatus(usuario)}
+                  disabled={usuarioEmAtualizacao === usuario.id}
+                  style={{
+                    ...estiloBotaoStatus,
+                    backgroundColor: usuario.status === 'ATIVO' ? '#dc3545' : '#28a745',
+                  }}
+                >
+                  {usuarioEmAtualizacao === usuario.id
+                    ? 'A atualizar...'
+                    : usuario.status === 'ATIVO' ? 'Inativar acesso' : 'Ativar acesso'}
                 </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </section>
   );
 }
+
+const estiloInput = {
+  display: 'block',
+  boxSizing: 'border-box',
+  width: '100%',
+  marginTop: '6px',
+  padding: '10px',
+  border: '1px solid #cccccc',
+  borderRadius: '8px',
+};
+
+const estiloBotaoPrimario = {
+  padding: '10px 14px',
+  color: '#ffffff',
+  backgroundColor: '#0056b3',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+};
+
+const estiloBotaoStatus = {
+  padding: '10px 14px',
+  color: '#ffffff',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+};

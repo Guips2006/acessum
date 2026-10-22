@@ -52,8 +52,11 @@ classDiagram
 
     class Reserva {
         +UUID id
+        +UUID laboratorioId
+        +UUID usuarioId
         +DateTime inicio
         +DateTime fim
+        +DateTime fimReal
         +DateTime dataCriacao
         +StatusReserva status
         +confirmar()
@@ -113,6 +116,7 @@ classDiagram
     class RelatoProblema {
         +UUID id
         +String descricao
+        +String nivelSeveridade
         +DateTime dataHora
         +StatusProblema status
         +resolver()
@@ -141,10 +145,13 @@ classDiagram
 
     class StatusReserva {
         <<enumeration>>
-        CONFIRMADA
+        PENDENTE
+        APROVADA
+        RECUSADA
         EM_USO
-        ENCERRADA
+        CONCLUIDA
         CANCELADA
+        NO_SHOW
     }
 
     class StatusEquipamento {
@@ -157,7 +164,6 @@ classDiagram
     class StatusProblema {
         <<enumeration>>
         ABERTO
-        EM_ANALISE
         RESOLVIDO
     }
 ```
