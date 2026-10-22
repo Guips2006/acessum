@@ -28,3 +28,18 @@ class LaboratorioResponse(LaboratorioBase):
 
     class Config:
         from_attributes = True
+
+class EquipamentoBase(BaseModel):
+    nome: str
+    descricao: str | None = None
+    laboratorio_id: str
+
+class EquipamentoCriar(EquipamentoBase):
+    pass
+
+class EquipamentoResponse(EquipamentoBase):
+    id: str
+    status: str
+
+    class Config:
+        from_attributes = True

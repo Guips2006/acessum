@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, ForeignKey
 from database import Base
 import uuid
 
@@ -21,3 +21,13 @@ class Laboratorio(Base):
     capacidade = Column(Integer)
     status = Column(String, default="ATIVO") # ATIVO ou INATIVO
 
+class Equipamento(Base):
+    __tablename__ = "equipamentos"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    nome = Column(String, index=True)
+    descricao = Column(String, nullable=True) # Ex: "Core i7, 16GB RAM" ou "Projetor Epson"
+    status = Column(String, default="ATIVO") # ATIVO ou INATIVO
+    
+    # Chave estrangeira que vincula ao laboratório
+    laboratorio_id = Column(String(36), ForeignKey("laboratorios.id"))

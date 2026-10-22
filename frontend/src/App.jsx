@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import GestaoUsuarios from './GestaoUsuarios'; 
 import GestaoLaboratorios from './GestaoLaboratorios';
+import GestaoEquipamentos from './GestaoEquipamentos';
 
 export default function App() {
   const { user, login, logout, loading } = useContext(AuthContext);
@@ -44,6 +45,11 @@ export default function App() {
           <GestaoLaboratorios voltar={() => setTelaAtiva('MENU')} />
         )}
 
+        {/* SE A TELA ATIVA FOR "GESTAO_EQUIPAMENTOS", MOSTRA O NOVO COMPONENTE */}
+        {telaAtiva === 'GESTAO_EQUIPAMENTOS' && (
+          <GestaoEquipamentos voltar={() => setTelaAtiva('MENU')} />
+        )}
+
         {/* SE A TELA ATIVA FOR "MENU", MOSTRA OS BOTÕES NORMAIS */}
         {telaAtiva === 'MENU' && (
           <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ccc', borderRadius: '8px' }}>
@@ -73,7 +79,14 @@ export default function App() {
                   >
                     🏢 Cadastrar Laboratórios
                   </li>
-                </>
+
+                  <li 
+                    style={{ color: 'red', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => setTelaAtiva('GESTAO_EQUIPAMENTOS')}
+                  >
+                    💻 Cadastrar Equipamentos
+                  </li>
+                </>  
               )}
             </ul>
           </div>

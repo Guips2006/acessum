@@ -5,7 +5,7 @@ export const AuthContext = createContext();
 
 // 1. Deixe a baseURL apenas com o link principal do Codespaces (sem o /api no final)
 const api = axios.create({
-  baseURL: 'https://opulent-space-doodle-4j45g4gx59j5h94v-8000.app.github.dev',
+  baseURL: 'https://cuddly-cod-pv4qrggj7jgh6wqp-8000.app.github.dev/',
 });
 
 export const AuthProvider = ({ children }) => {
