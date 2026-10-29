@@ -43,3 +43,35 @@ Este documento registra as principais decisões arquiteturais e escolhas de tecn
 - **Consequências:**
   - **Positivas:** Escalabilidade (o backend não precisa guardar sessão em memória). O frontend pode facilmente decodificar o token para descobrir se o usuário é Aluno ou Admin e ajustar a interface.
   - **Negativas:** Tokens JWT não podem ser invalidados individualmente antes da expiração de forma nativa (caso necessário no futuro, exigirá uma "blacklist" no banco de dados).
+
+## ADR 006: Armazenamento e validação de avatares
+- **Status:** Aceito
+- **Contexto:** O perfil V2.0 permite upload de imagem e o sistema existente usa FastAPI com SQLite, sem serviço de arquivos configurado.
+- **Decisão:** Guardar avatares no diretório estático local `backend/static/avatars`, com nome aleatório gerado pelo servidor. Aceitar somente PNG e JPEG, validar o conteúdo com Pillow e limitar o arquivo a 5 MiB. Usar `python-multipart` para receber formulários multipart no FastAPI.
+- **Consequências:**
+  - **Positivas:** Implementação simples, sem serviço externo; URLs persistidas no banco continuam referenciando arquivos não executáveis, com nomes que não usam o nome original enviado.
+  - **Negativas:** Arquivos locais exigem volume persistente e armazenamento compartilhado se houver múltiplas instâncias. Uma futura migração para object storage deve preservar as URLs ou criar uma estratégia de transição.
+
+## ADR 007: Gráficos do Dashboard Administrativo
+- **Status:** Aceito
+- **Contexto:** A SPEC-017 exige gráficos interativos de distribuição de reservas e evolução de faltas na SPA React existente.
+- **Decisão:** Utilizar Recharts para os gráficos, mantendo as agregações e a autorização no backend FastAPI.
+- **Consequências:**
+  - **Positivas:** Componentes responsivos integrados ao React e visualização acessível sem implementar SVGs manualmente.
+  - **Negativas:** O frontend passa a depender de uma biblioteca adicional e deve manter alternativas de estado vazio e erro quando não houver dados.
+
+## ADR 008: Geração de relatórios CSV e PDF
+- **Status:** Aceito
+- **Contexto:** A SPEC-018 exige relatórios filtrados de reservas para Administração e para o próprio histórico do usuário.
+- **Decisão:** Gerar CSV com a biblioteca padrão `csv` do Python e PDF com ReportLab no backend. Os arquivos são preparados em memória, com limite de 10.000 registros por exportação.
+- **Consequências:**
+  - **Positivas:** CSV sem dependência adicional e PDF paginado com layout tabular consistente.
+  - **Negativas:** ReportLab aumenta as dependências do backend; relatórios grandes são rejeitados e devem ser divididos por filtros.
+
+## ADR 009: Ícones Lucide no frontend
+- **Status:** Aceito
+- **Contexto:** A V2.1 precisa de ícones consistentes para visibilidade de senha, alternância Lua/Sol, avatar e menu do usuário.
+- **Decisão:** Utilizar `lucide-react`, mantendo rótulos acessíveis e ícones decorativos marcados para leitores de tela.
+- **Consequências:**
+  - **Positivas:** Ícones SVG consistentes e fáceis de dimensionar sem desenhar ativos manualmente.
+  - **Negativas:** Dependência adicional no bundle do frontend; importar apenas os ícones usados e manter carregamento sob demanda onde couber.

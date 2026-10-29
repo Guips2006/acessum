@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 import RelatarProblema from './RelatarProblema';
 import ConsultaDisponibilidade from './ConsultaDisponibilidade';
 import SolicitarReserva from './SolicitarReserva';
@@ -43,7 +44,7 @@ export default function ConsultaRecursos({ voltar }) {
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
 
       {carregando ? (
-        <p role="status">A carregar recursos...</p>
+        <LoadingSpinner label="A carregar recursos..." />
       ) : erro ? null : laboratorios.length === 0 ? (
         <p>Nenhum laboratório cadastrado no momento.</p>
       ) : (
@@ -159,9 +160,9 @@ export default function ConsultaRecursos({ voltar }) {
 
 const estiloBotaoProblema = {
   padding: '8px 12px',
-  color: '#333333',
-  backgroundColor: '#ffc107',
-  border: '1px solid #e0a800',
+  color: '#ffffff',
+  backgroundColor: '#9a5700',
+  border: '1px solid #874b00',
   borderRadius: '8px',
   cursor: 'pointer',
 };

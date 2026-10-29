@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function GestaoEquipamentos({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -139,9 +140,10 @@ export default function GestaoEquipamentos({ voltar }) {
           <button
             type="submit"
             disabled={salvando || carregando || laboratoriosAtivos.length === 0}
+            aria-busy={salvando}
             style={estiloBotaoPrimario}
           >
-            {salvando ? 'A guardar...' : 'Salvar equipamento'}
+            {salvando ? <LoadingSpinner label="A guardar..." inline /> : 'Salvar equipamento'}
           </button>
         </form>
       </div>
@@ -149,7 +151,7 @@ export default function GestaoEquipamentos({ voltar }) {
       <section aria-labelledby="lista-equipamentos-titulo">
         <h3 id="lista-equipamentos-titulo">Equipamentos cadastrados</h3>
         {carregando ? (
-          <p role="status">A carregar equipamentos...</p>
+          <LoadingSpinner label="A carregar equipamentos..." />
         ) : equipamentos.length === 0 ? (
           <p>Nenhum equipamento cadastrado.</p>
         ) : (
@@ -169,13 +171,14 @@ export default function GestaoEquipamentos({ voltar }) {
                   type="button"
                   onClick={() => alternarStatus(equipamento)}
                   disabled={equipamentoEmAtualizacao === equipamento.id}
+                  aria-busy={equipamentoEmAtualizacao === equipamento.id}
                   style={{
                     ...estiloBotaoStatus,
                     backgroundColor: equipamento.status === 'ATIVO' ? '#dc3545' : '#28a745',
                   }}
                 >
                   {equipamentoEmAtualizacao === equipamento.id
-                    ? 'A atualizar...'
+                    ? <LoadingSpinner label="A atualizar..." inline />
                     : equipamento.status === 'ATIVO' ? 'Inativar equipamento' : 'Ativar equipamento'}
                 </button>
               </article>

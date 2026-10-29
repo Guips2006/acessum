@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
+from reservas_lifecycle import reavaliar_suspensao_expirada
 import models
 
 SECRET_KEY = "chave-secreta-simples-para-teste"
@@ -25,7 +26,12 @@ def create_token(user_id: str, perfil: str):
     to_encode = {"sub": user_id, "perfil": perfil, "exp": vencimento}
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def obter_usuario_logado(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
+
+def obter_usuario_logado(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Token inválido ou expirado",
@@ -44,8 +50,24 @@ def obter_usuario_logado(credentials: HTTPAuthorizationCredentials = Depends(sec
         raise credentials_exception
         
     user = db.query(models.Usuario).filter(models.Usuario.id == user_id).first()
-    if user is None or user.status != "ATIVO":
+    if user is None or user.status == "INATIVO":
         raise HTTPException(status_code=401, detail="Usuário inativo ou não encontrado")
+
+    rotas_troca_obrigatoria = {
+        "/api/auth/me",
+        "/api/auth/alterar-senha",
+        "/api/perfil/me",
+    }
+    if user.deve_trocar_senha and request.url.path not in rotas_troca_obrigatoria:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Altere sua senha temporária antes de continuar.",
+        )
+
+    agora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    reavaliar_suspensao_expirada(db, user, agora_utc)
+    user.ultima_atividade = agora_utc
+    db.commit()
     
     return user
 

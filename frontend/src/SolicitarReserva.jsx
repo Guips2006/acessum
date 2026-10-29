@@ -1,17 +1,29 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 function paraUtcIso(valorLocal) {
   return new Date(valorLocal).toISOString();
 }
 
+function dataHoraLocal(valor) {
+  const doisDigitos = numero => String(numero).padStart(2, '0');
+  return `${valor.getFullYear()}-${doisDigitos(valor.getMonth() + 1)}-${doisDigitos(valor.getDate())}T${doisDigitos(valor.getHours())}:${doisDigitos(valor.getMinutes())}`;
+}
+
 export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
-  const { api } = useContext(AuthContext);
+  const { api, user } = useContext(AuthContext);
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [finalidade, setFinalidade] = useState('');
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const suspenso = user.status === 'SUSPENSO';
+  const agoraLocal = dataHoraLocal(new Date());
+  const minimoFim = dataInicio || agoraLocal;
+  const fimSuspensao = user.suspensao_ate
+    ? new Date(user.suspensao_ate).toLocaleString('pt-BR')
+    : '';
 
   const enviarSolicitacao = async (evento) => {
     evento.preventDefault();
@@ -46,12 +58,18 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
       style={{ marginTop: '14px', padding: '16px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px' }}
     >
       <h4 style={{ marginTop: 0 }}>Solicitar reserva: {laboratorio.nome}</h4>
+      {suspenso && (
+        <p className="feedback feedback-error" role="alert">
+          Sua conta está suspensa{fimSuspensao ? ` até ${fimSuspensao}` : ''}. Novas reservas estão bloqueadas.
+        </p>
+      )}
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       <form onSubmit={enviarSolicitacao} style={{ display: 'grid', gap: '12px' }}>
         <label>
           Início
           <input
             type="datetime-local"
+            min={agoraLocal}
             value={dataInicio}
             onChange={evento => setDataInicio(evento.target.value)}
             required
@@ -62,6 +80,7 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
           Fim
           <input
             type="datetime-local"
+            min={minimoFim}
             value={dataFim}
             onChange={evento => setDataFim(evento.target.value)}
             required
@@ -80,8 +99,8 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
           />
         </label>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button type="submit" disabled={enviando} style={estiloBotaoPrimario}>
-            {enviando ? 'A enviar...' : 'Enviar solicitação'}
+          <button type="submit" disabled={enviando || suspenso} aria-busy={enviando} style={estiloBotaoPrimario}>
+            {enviando ? <LoadingSpinner label="A enviar..." inline /> : 'Enviar solicitação'}
           </button>
           <button type="button" onClick={fechar} style={estiloBotaoSecundario}>
             Fechar

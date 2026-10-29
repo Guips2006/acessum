@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function GestaoLaboratorios({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -107,8 +108,8 @@ export default function GestaoLaboratorios({ voltar }) {
               style={estiloInput}
             />
           </label>
-          <button type="submit" disabled={salvando} style={estiloBotaoPrimario}>
-            {salvando ? 'A guardar...' : 'Salvar laboratório'}
+          <button type="submit" disabled={salvando} aria-busy={salvando} style={estiloBotaoPrimario}>
+            {salvando ? <LoadingSpinner label="A guardar..." inline /> : 'Salvar laboratório'}
           </button>
         </form>
       </div>
@@ -116,7 +117,7 @@ export default function GestaoLaboratorios({ voltar }) {
       <section aria-labelledby="lista-laboratorios-titulo">
         <h3 id="lista-laboratorios-titulo">Laboratórios cadastrados</h3>
         {carregando ? (
-          <p role="status">A carregar laboratórios...</p>
+          <LoadingSpinner label="A carregar laboratórios..." />
         ) : laboratorios.length === 0 ? (
           <p>Nenhum laboratório cadastrado.</p>
         ) : (
@@ -135,13 +136,14 @@ export default function GestaoLaboratorios({ voltar }) {
                   type="button"
                   onClick={() => alternarStatus(laboratorio)}
                   disabled={laboratorioEmAtualizacao === laboratorio.id}
+                  aria-busy={laboratorioEmAtualizacao === laboratorio.id}
                   style={{
                     ...estiloBotaoStatus,
                     backgroundColor: laboratorio.status === 'ATIVO' ? '#dc3545' : '#28a745',
                   }}
                 >
                   {laboratorioEmAtualizacao === laboratorio.id
-                    ? 'A atualizar...'
+                    ? <LoadingSpinner label="A atualizar..." inline />
                     : laboratorio.status === 'ATIVO' ? 'Inativar laboratório' : 'Ativar laboratório'}
                 </button>
               </article>

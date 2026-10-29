@@ -9,6 +9,13 @@ classDiagram
         +UUID id
         +String nome
         +String email
+        +String cpf
+        +String rg
+        +Date dataNascimento
+        +String avatarUrl
+        +DateTime ultimaAtividade
+        +DateTime suspensaoAte
+        +Boolean deveTrocarSenha
         +StatusUsuario status
         +ativar()
         +desativar()
@@ -57,6 +64,7 @@ classDiagram
         +DateTime inicio
         +DateTime fim
         +DateTime fimReal
+        +DateTime dataNoShow
         +DateTime dataCriacao
         +StatusReserva status
         +confirmar()
@@ -126,6 +134,46 @@ classDiagram
     Laboratorio "1" --> "0..*" RelatoProblema : relacionado
     Equipamento "0..1" --> "0..*" RelatoProblema : afetado
 
+    class Notificacao {
+        +UUID id
+        +UUID usuarioId
+        +UUID reservaId
+        +String tipo
+        +String titulo
+        +String mensagem
+        +DateTime criadaEm
+        +Boolean lida
+    }
+
+    Usuario "1" --> "0..*" Notificacao : recebe
+    Reserva "1" --> "0..*" Notificacao : origina
+
+    class LogAuditoria {
+        +UUID id
+        +UUID usuarioId
+        +String acao
+        +String entidade
+        +UUID entidadeId
+        +String descricao
+        +DateTime dataHora
+    }
+
+    Usuario "1" --> "0..*" LogAuditoria : executa
+
+    class NotificacaoConta {
+        +UUID id
+        +UUID destinatarioId
+        +UUID solicitanteId
+        +String tipo
+        +String status
+        +DateTime criadaEm
+        +UUID atendidaPorId
+        +DateTime atendidaEm
+    }
+
+    Usuario "1" --> "0..*" NotificacaoConta : recebe
+    Usuario "1" --> "0..*" NotificacaoConta : solicita
+
 
     %% =========================
     %% ENUMERACOES
@@ -135,6 +183,7 @@ classDiagram
         <<enumeration>>
         ATIVO
         INATIVO
+        SUSPENSO
     }
 
     class StatusLaboratorio {
@@ -165,5 +214,12 @@ classDiagram
         <<enumeration>>
         ABERTO
         RESOLVIDO
+    }
+
+    class TipoNotificacao {
+        <<enumeration>>
+        RESERVA_APROVADA
+        RESERVA_RECUSADA
+        CHECKIN_30_MIN
     }
 ```

@@ -10,6 +10,12 @@
   * `axios` (para requisições HTTP simplificadas).
   * *Ícones* (podem ser emojis nativos para manter a simplicidade didática, ou biblioteca de ícones minimalista se previamente instalada).
 
+## 1.1 Preferências de acessibilidade e carregamento (SPEC-014)
+* `ThemeProvider` envolve a aplicação e mantém modo escuro e alto contraste em preferências locais do navegador.
+* Os controles ficam na tela Configurações e devem ser utilizáveis por teclado, ter rótulos acessíveis e indicar seu estado.
+* Operações assíncronas devem usar `LoadingSpinner` com rótulo em português; mensagens de erro, sucesso e estados vazios permanecem independentes.
+* As animações devem respeitar a preferência de movimento reduzido do sistema operacional.
+
 ## 2. Padrões de Layout e UI/UX (Obrigatório)
 O design deve ser **minimalista, didático e limpo**. O utilizador não deve ter dúvidas sobre o que clicar.
 

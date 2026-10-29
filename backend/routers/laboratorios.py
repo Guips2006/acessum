@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
 import models, schemas
+from auditoria_service import registrar_log
 from auth_utils import exigir_perfil, obter_usuario_logado
 
 router = APIRouter(prefix="/api/laboratorios", tags=["Laboratórios"])
@@ -28,7 +29,11 @@ def listar_laboratorios(db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
 )
-def criar_laboratorio(lab: schemas.LaboratorioCriar, db: Session = Depends(get_db)):
+def criar_laboratorio(
+    lab: schemas.LaboratorioCriar,
+    ator: models.Usuario = Depends(obter_usuario_logado),
+    db: Session = Depends(get_db),
+):
     """Cadastra um novo laboratório."""
     nome_existente = db.query(models.Laboratorio).filter(
         func.lower(models.Laboratorio.nome) == lab.nome.lower()
@@ -46,6 +51,15 @@ def criar_laboratorio(lab: schemas.LaboratorioCriar, db: Session = Depends(get_d
     )
     db.add(novo_lab)
     try:
+        db.flush()
+        registrar_log(
+            db,
+            ator,
+            "LABORATORIO_CRIADO",
+            "LABORATORIO",
+            novo_lab.id,
+            f"Laboratório {novo_lab.nome} criado.",
+        )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -61,7 +75,11 @@ def criar_laboratorio(lab: schemas.LaboratorioCriar, db: Session = Depends(get_d
     response_model=schemas.LaboratorioStatusResponse,
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
 )
-def alternar_status_laboratorio(lab_id: str, db: Session = Depends(get_db)):
+def alternar_status_laboratorio(
+    lab_id: str,
+    ator: models.Usuario = Depends(obter_usuario_logado),
+    db: Session = Depends(get_db),
+):
     """Ativa ou desativa um laboratório no sistema (Soft Delete)."""
     lab = db.query(models.Laboratorio).filter(models.Laboratorio.id == lab_id).first()
     if not lab:
@@ -76,5 +94,14 @@ def alternar_status_laboratorio(lab_id: str, db: Session = Depends(get_db)):
         )
 
     lab.status = "INATIVO" if lab.status == "ATIVO" else "ATIVO"
+    acao = "LABORATORIO_INATIVADO" if lab.status == "INATIVO" else "LABORATORIO_ATIVADO"
+    registrar_log(
+        db,
+        ator,
+        acao,
+        "LABORATORIO",
+        lab.id,
+        f"Status do laboratório {lab.nome} alterado para {lab.status}.",
+    )
     db.commit()
     return {"id": lab.id, "novo_status": lab.status}

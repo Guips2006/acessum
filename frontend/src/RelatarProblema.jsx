@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, fechar }) {
   const { api } = useContext(AuthContext);
@@ -33,7 +34,7 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
   return (
     <section
       aria-label={`Relatar problema em ${recursoNome}`}
-      style={{ marginTop: '12px', padding: '16px', backgroundColor: '#fff8e1', border: '1px solid #ffc107', borderRadius: '8px' }}
+      style={{ marginTop: '12px', padding: '16px', backgroundColor: '#fff4d6', border: '1px solid #d39b27', borderRadius: '8px' }}
     >
       <h4 style={{ marginTop: 0 }}>Relatar problema: {recursoNome}</h4>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
@@ -64,8 +65,8 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
           </select>
         </label>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button type="submit" disabled={enviando} style={estiloBotaoEnviar}>
-            {enviando ? 'A enviar...' : 'Enviar relato'}
+          <button type="submit" disabled={enviando} aria-busy={enviando} style={estiloBotaoEnviar}>
+            {enviando ? <LoadingSpinner label="A enviar..." inline /> : 'Enviar relato'}
           </button>
           <button type="button" onClick={fechar} style={estiloBotaoCancelar}>
             Fechar

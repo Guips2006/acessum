@@ -4,14 +4,13 @@
 > Fonte de verdade: artefatos de modelagem no branch `development` (`README.md`, `docs/visao.md`, `docs/personas.md`,
 > `docs/requisitos.md`, `docs/dominio.md`, `docs/casos_de_uso/*`).
 >
-> Este documento apresenta **somente o mapa ordenado de Specs**. Nenhuma Spec individual foi detalhada e nenhum
-> código foi gerado. Após aprovação humana deste mapa, cada Spec deve ser gerada individualmente, uma por vez,
-> através do prompt complementar.
+> Este documento apresenta o mapa de Specs do MVP e da evolução V2.0. As SPECs 001–013 descrevem o escopo do MVP;
+> a SPEC-014 registra a primeira entrega V2.0.
 
 ## Status
 
 - [ ] Mapa aprovado pela equipe
-- Última atualização: 2026-09-26
+- Última atualização: 2026-10-29
 
 ## Decisões incorporadas
 
@@ -47,7 +46,7 @@ Decisões já tomadas pela equipe e aplicadas neste mapa (resolvem ambiguidades 
 | OPEN-09 | Se a definição de senha inicial (no cadastro pelo Admin) e a recuperação de senha esquecida entram no escopo. |
 | OPEN-10 | O modelo de domínio não tem atributo de "uso controlado" em `Equipamento`, necessário para RB-03. |
 | OPEN-11 | Não há RF nem caso de uso definindo quem marca um equipamento como "Em manutenção". |
-| OPEN-12 | Consequência prática do estado "No-show" (RB-07): é só um registro histórico, ou gera alguma penalidade (ex.: afeta RB-04)? |
+| OPEN-12 | Resolvido na SPEC-016: três `NO_SHOW` em 30 dias suspendem o Aluno por 7 dias; a regra é reavaliada ao término da suspensão. |
 | OPEN-13 | Mecanismo do registro de auditoria: o que é logado, formato, quem consulta. |
 | OPEN-14 | Nenhum ADR, driver arquitetural ou decisão de stack (frontend/backend/banco/hospedagem) existe na baseline. |
 | OPEN-15 | Bootstrap do primeiro Administrador: cadastrar usuário exige estar autenticado como Admin (RF-02), mas não há definição de como o primeiro Admin é criado. |
@@ -245,10 +244,152 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **Justificativa da posição:** depende apenas de poder referenciar um laboratório/equipamento já consultável; independente do fluxo de reservas.
 - **Open relacionado:** OPEN-07
 
+### SPEC-014 — Preferências de Acessibilidade e Indicadores de Carregamento
+- **Objetivo:** permitir que todos os perfis configurem modo escuro e alto contraste, com preferências persistidas no navegador, e recebam feedback uniforme em operações assíncronas.
+- **Valor entregue:** interface mais adaptável e estados de carregamento perceptíveis e acessíveis.
+- **RF relacionados:** novos requisitos V2.0 definidos em `spec-014.md`
+- **RB relacionadas:** —
+- **RNF aplicáveis:** RNF-04
+- **Caso de uso / fluxo:** Configurar acessibilidade; acompanhar carregamento de telas e ações.
+- **Entidades do modelo conceitual:** —
+- **Drivers arquiteturais:** React Context API e CSS custom properties existentes.
+- **ADRs:** nenhuma dependência nova.
+- **Dependências:** nenhuma.
+- **Justificativa da posição:** estabelece padrões visuais e de interação reutilizados pelas próximas etapas V2.0.
+
+### SPEC-015 — Perfil, Avatar e Última Atividade
+- **Objetivo:** permitir que cada usuário edite seu nome e e-mail, envie uma foto de perfil e consulte o registro de sua última atividade.
+- **Valor entregue:** dados pessoais atualizados, identificação visual e rastreabilidade de acesso.
+- **RF relacionados:** novos requisitos V2.0 definidos em `spec-015.md`
+- **RB relacionadas:** alteração restrita ao usuário autenticado; endereço de e-mail permanece único.
+- **RNF aplicáveis:** RNF-02, RNF-04, RNF-05
+- **Caso de uso / fluxo:** Meu Perfil; login e chamadas autenticadas atualizam a atividade.
+- **Entidades do modelo conceitual:** `Usuario`, `avatar_url`, `ultima_atividade`
+- **Drivers arquiteturais:** armazenamento local de estáticos e validação de imagens.
+- **ADRs:** ADR 006 — Armazenamento e validação de avatares.
+- **Dependências:** SPEC-001 e SPEC-014.
+- **Justificativa da posição:** depende da identidade autenticada e dos padrões globais de interface; fornece o mecanismo de upload reutilizável como referência futura.
+
+### SPEC-016 — Penalidade por No-Show
+- **Objetivo:** suspender temporariamente Alunos que acumulem três reservas `NO_SHOW` em uma janela móvel de 30 dias.
+- **Valor entregue:** responsabilização por faltas e proteção da disponibilidade dos laboratórios.
+- **RF relacionados:** novos requisitos V2.0 definidos em `spec-016.md`
+- **RB relacionadas:** suspensão por 7 dias; reavaliação da janela móvel no vencimento; chamadas autenticadas permanecem disponíveis, mas novas reservas são bloqueadas.
+- **RNF aplicáveis:** RNF-01, RNF-02, RNF-05
+- **Caso de uso / fluxo:** Job de ciclo de vida e expiração da janela de check-in registram `NO_SHOW`; autenticação reavalia suspensão vencida.
+- **Entidades do modelo conceitual:** `Usuario.status`, `Usuario.suspensao_ate`, `Reserva.data_no_show`
+- **Drivers arquiteturais:** job periódico existente e migrações aditivas SQLite.
+- **ADRs:** nenhuma dependência nova.
+- **Dependências:** SPEC-007, SPEC-010 e SPEC-015.
+- **Justificativa da posição:** depende das reservas/check-in existentes e acrescenta a regra sobre os usuários identificados no fluxo de autenticação.
+
+### SPEC-017 — Dashboard Administrativo
+- **Objetivo:** fornecer indicadores de ocupação, reservas por status e evolução diária de `NO_SHOW` para Administradores.
+- **Valor entregue:** visão consolidada para acompanhamento operacional dos laboratórios.
+- **RF relacionados:** novos requisitos V2.0 definidos em `spec-017.md`
+- **RB relacionadas:** somente reservas iniciadas no período entram na distribuição por status; ocupação conta horas de `APROVADA`, `EM_USO` e `CONCLUIDA` em laboratórios ativos, sem sobreposição.
+- **RNF aplicáveis:** RNF-01, RNF-02, RNF-04, RNF-05
+- **Caso de uso / fluxo:** Dashboard administrativo com intervalo selecionável e período padrão dos últimos 30 dias.
+- **Entidades do modelo conceitual:** `Reserva`, `Laboratorio`
+- **Drivers arquiteturais:** consultas agregadas no FastAPI e gráficos Recharts.
+- **ADRs:** ADR 007 — Gráficos do Dashboard Administrativo.
+- **Dependências:** SPEC-003, SPEC-007, SPEC-010 e SPEC-016.
+- **Justificativa da posição:** usa o histórico de reservas e a data de `NO_SHOW` produzida pelo ciclo de penalidades.
+
+### SPEC-018 — Exportação de Relatórios
+- **Objetivo:** permitir exportar reservas filtradas em CSV ou PDF nos contextos administrativo e de histórico pessoal.
+- **Valor entregue:** análise externa e arquivamento dos dados sem ampliar permissões de consulta.
+- **RF relacionados:** novos requisitos V2.0 definidos em `spec-018.md`
+- **RB relacionadas:** Admin exporta globalmente; Aluno/Professor exporta somente as próprias reservas; período máximo de 366 dias e 10.000 registros.
+- **RNF aplicáveis:** RNF-01, RNF-02, RNF-05
+- **Caso de uso / fluxo:** Exportar relatório do dashboard ou do histórico com filtros de período/status.
+- **Entidades do modelo conceitual:** `Reserva`, `Laboratorio`, `Usuario`
+- **Drivers arquiteturais:** CSV padrão Python e PDF paginado.
+- **ADRs:** ADR 008 — Geração de relatórios CSV e PDF.
+- **Dependências:** SPEC-012 e SPEC-017.
+- **Justificativa da posição:** reutiliza o período já selecionado no dashboard e acrescenta filtros ao histórico próprio.
+
+### SPEC-019 — Notificações In-App
+- **Objetivo:** informar Alunos sobre decisões de reservas e lembretes de check-in por notificações persistentes no sistema.
+- **Valor entregue:** acompanhamento oportuno de decisões e reservas próximas sem depender de e-mail externo.
+- **RF relacionados:** novos requisitos V2.0 definidos em `spec-019.md`
+- **RB relacionadas:** criar aviso após aprovação/recusa; gerar lembrete ao entrar na janela de 30 minutos; uma notificação por reserva e tipo; somente o titular consulta/altera leitura.
+- **RNF aplicáveis:** RNF-01, RNF-02, RNF-04, RNF-05
+- **Caso de uso / fluxo:** Sino na barra superior; job periódico; leitura individual ou em lote.
+- **Entidades do modelo conceitual:** `Notificacao`, `Usuario`, `Reserva`
+- **Drivers arquiteturais:** polling leve do frontend e job periódico já existente no backend.
+- **ADRs:** nenhuma dependência nova.
+- **Dependências:** SPEC-008, SPEC-010 e SPEC-015.
+- **Justificativa da posição:** usa as decisões e horários das reservas e a identidade do usuário autenticado.
+
+### SPEC-020 — Log de Auditoria
+- **Objetivo:** registrar ações críticas com autor, ação, entidade, descrição e data/hora e permitir consulta administrativa.
+- **Valor entregue:** rastreabilidade das alterações relevantes no sistema.
+- **RF relacionados:** requisito de auditoria derivado do domínio e detalhado em `spec-020.md`
+- **RB relacionadas:** criar log na mesma transação da ação; consulta somente por Administrador; logs são imutáveis pela API.
+- **RNF aplicáveis:** RNF-01, RNF-02, RNF-05
+- **Caso de uso / fluxo:** Escrita transacional nos handlers críticos; consulta paginada e filtrável para Administrador.
+- **Entidades do modelo conceitual:** `LogAuditoria`, `Usuario`
+- **Drivers arquiteturais:** SQLite e SQLAlchemy existentes; migração aditiva.
+- **ADRs:** nenhuma dependência nova.
+- **Dependências:** SPEC-002, SPEC-003, SPEC-008 e SPEC-015.
+- **Justificativa da posição:** instrumenta operações administrativas e alterações de perfil já implementadas sem alterar seus resultados.
+
+### SPEC-021 — Polimento Visual e Navegação
+- **Objetivo:** corrigir temas e loading, aprimorar marca/paleta e organizar ações da conta em menu de usuário.
+- **Valor entregue:** interface consistente, acessível e mais fácil de navegar.
+- **RF relacionados:** refinamentos V2.1 descritos em `spec-021.md`
+- **RB relacionadas:** Configurações, Meu perfil e Sair ficam no menu do usuário; visão geral acessível ao Aluno.
+- **RNF aplicáveis:** RNF-04
+- **Caso de uso / fluxo:** Navegação autenticada e configurações de aparência.
+- **Entidades do modelo conceitual:** —
+- **Drivers arquiteturais:** React Context e Lucide.
+- **ADRs:** ADR 009 — Ícones Lucide no frontend.
+- **Dependências:** SPEC-014.
+- **Justificativa da posição:** prepara a interface para os fluxos de segurança e perfil da V2.1.
+
+### SPEC-022 — Perfil Completo e Troca de Senha
+- **Objetivo:** proteger o e-mail como dado imutável, completar dados pessoais, trocar senha e facilitar o envio de avatar.
+- **Valor entregue:** perfil consistente e credenciais atualizáveis com segurança.
+- **RF relacionados:** fluxos V2.1 descritos em `spec-022.md`
+- **RB relacionadas:** e-mail somente leitura; senha atual exigida para troca; senha temporária exige atualização.
+- **RNF aplicáveis:** RNF-02, RNF-03, RNF-04
+- **Caso de uso / fluxo:** Meu Perfil.
+- **Entidades do modelo conceitual:** `Usuario`, `cpf`, `rg`, `data_nascimento`, `deve_trocar_senha`.
+- **Drivers arquiteturais:** migração SQLite aditiva existente.
+- **ADRs:** nenhuma dependência nova.
+- **Dependências:** SPEC-015 e SPEC-021.
+- **Justificativa da posição:** consolida os novos dados e o fluxo de troca depois dos padrões visuais.
+
+### SPEC-023 — Cadastro Seguro e Redefinição de Senha
+- **Objetivo:** exigir dados cadastrais validados e oferecer reset de senha com aprovação administrativa e senha temporária.
+- **Valor entregue:** cadastro mais robusto e recuperação assistida sem expor existência de contas.
+- **RF relacionados:** fluxos V2.1 descritos em `spec-023.md`
+- **RB relacionadas:** CPF validado e único; RG normalizado; reset genérico e deduplicado; troca obrigatória da senha temporária.
+- **RNF aplicáveis:** RNF-02, RNF-03, RNF-05
+- **Caso de uso / fluxo:** Cadastro; solicitar reset; Administrador atende; titular troca senha.
+- **Entidades do modelo conceitual:** `Usuario`, `NotificacaoConta`.
+- **Drivers arquiteturais:** FastAPI, SQLite e hash bcrypt existentes.
+- **ADRs:** nenhuma dependência nova.
+- **Dependências:** SPEC-001, SPEC-002 e SPEC-022.
+- **Justificativa da posição:** o fluxo de recuperação reutiliza autenticação e perfil já protegidos.
+
+### SPEC-024 — Bloqueio de Datas Passadas
+- **Objetivo:** impedir que reservas sejam solicitadas para um início no passado.
+- **Valor entregue:** menos solicitações inválidas e regra consistente entre interface e API.
+- **RF relacionados:** refinamento V2.1 descrito em `spec-024.md`
+- **RB relacionadas:** data inicial deve ser futura; data final não pode anteceder o início.
+- **RNF aplicáveis:** RNF-04, RNF-05
+- **Caso de uso / fluxo:** Solicitar reserva.
+- **Entidades do modelo conceitual:** `Reserva.inicio`.
+- **Drivers arquiteturais:** controles HTML e validação FastAPI existentes.
+- **ADRs:** nenhuma dependência nova.
+- **Dependências:** SPEC-007.
+- **Justificativa da posição:** é uma validação isolada que completa os fluxos da V2.1.
+
 ---
 
 ## Próximos passos
 
-1. Revisão humana deste mapa (aprovar, ajustar ordem/agrupamento, ou resolver algum OPEN-XX antes de prosseguir).
-2. Resolver o quanto possível dos itens OPEN-01 a OPEN-15 — especialmente OPEN-01, OPEN-02 e OPEN-14, que afetam várias Specs.
-3. Gerar as Specs individuais, uma de cada vez, usando o prompt complementar (`Gerar SPEC-XXX`), sem misturar criação de Spec com implementação.
+1. Detalhar e implementar as próximas Specs da V2.0 na ordem de dependência aprovada no Plano Mestre.
+2. Resolver as questões abertas relacionadas a cada etapa antes de alterar suas regras de negócio.

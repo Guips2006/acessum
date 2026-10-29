@@ -5,7 +5,7 @@ export const AuthContext = createContext();
 
 // 1. Deixe a baseURL apenas com o link principal do Codespaces (sem o /api no final)
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://cuddly-cod-pv4qrggj7jgh6wqp-8000.app.github.dev/',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://sinister-zombie-5g6j464wjpr5fp5-8000.app.github.dev/',
 });
 
 export const AuthProvider = ({ children }) => {
@@ -53,8 +53,12 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const atualizarUsuario = (dadosUsuario) => {
+    setUser(atual => ({ ...atual, ...dadosUsuario }));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, api }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, api, atualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   );

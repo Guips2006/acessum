@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 function formatarData(valor) {
   return new Date(valor).toLocaleString();
@@ -67,7 +68,7 @@ export default function AnalisarReservas({ voltar }) {
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
       {carregando ? (
-        <p role="status">A carregar solicitações...</p>
+        <LoadingSpinner label="A carregar solicitações..." />
       ) : reservas.length === 0 ? (
         <p>Não há solicitações aguardando análise.</p>
       ) : (
@@ -82,7 +83,7 @@ export default function AnalisarReservas({ voltar }) {
               <p style={{ margin: '4px 0' }}>Início: {formatarData(reserva.data_inicio)}</p>
               <p style={{ margin: '4px 0' }}>Fim: {formatarData(reserva.data_fim)}</p>
               <p style={{ margin: '4px 0' }}>Finalidade: {reserva.finalidade}</p>
-              <p style={{ margin: '4px 0 12px', color: '#ffc107', fontWeight: 'bold' }}>
+              <p style={{ margin: '4px 0 12px', color: '#9a5700', fontWeight: 'bold' }}>
                 Status: {reserva.status}
               </p>
               <label>
@@ -100,17 +101,19 @@ export default function AnalisarReservas({ voltar }) {
                   type="button"
                   onClick={() => decidirReserva(reserva, 'APROVADA')}
                   disabled={reservaEmAnalise === reserva.id}
+                  aria-busy={reservaEmAnalise === reserva.id}
                   style={{ ...estiloBotao, backgroundColor: '#28a745' }}
                 >
-                  {reservaEmAnalise === reserva.id ? 'A processar...' : 'Aprovar'}
+                  {reservaEmAnalise === reserva.id ? <LoadingSpinner label="A processar..." inline /> : 'Aprovar'}
                 </button>
                 <button
                   type="button"
                   onClick={() => decidirReserva(reserva, 'RECUSADA')}
                   disabled={reservaEmAnalise === reserva.id}
+                  aria-busy={reservaEmAnalise === reserva.id}
                   style={{ ...estiloBotao, backgroundColor: '#dc3545' }}
                 >
-                  {reservaEmAnalise === reserva.id ? 'A processar...' : 'Recusar'}
+                  {reservaEmAnalise === reserva.id ? <LoadingSpinner label="A processar..." inline /> : 'Recusar'}
                 </button>
               </div>
             </article>

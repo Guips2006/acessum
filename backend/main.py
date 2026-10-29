@@ -5,31 +5,48 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from database import engine, Base, get_db, SessionLocal
 from migrations import aplicar_migracoes
-from routers import auth, usuarios, laboratorios, equipamentos, problemas, reservas
+from routers import (
+    auth,
+    auditoria,
+    dashboard,
+    equipamentos,
+    laboratorios,
+    notificacoes,
+    notificacoes_conta,
+    perfil,
+    problemas,
+    relatorios,
+    reservas,
+    usuarios,
+)
 import models
 from auth_utils import get_password_hash
 from reservas_lifecycle import marcar_reservas_no_show
+from notificacoes_service import gerar_lembretes_checkin
 
 logger = logging.getLogger(__name__)
 INTERVALO_NO_SHOW_SEGUNDOS = 60
 
 
-def processar_reservas_no_show() -> int:
+def processar_ciclo_reservas() -> int:
     with SessionLocal() as db:
         agora_utc = datetime.now(timezone.utc).replace(tzinfo=None)
-        return marcar_reservas_no_show(db, agora_utc)
+        atualizadas = marcar_reservas_no_show(db, agora_utc)
+        gerar_lembretes_checkin(db, agora_utc)
+        return atualizadas
 
 
 async def tarefa_no_show() -> None:
     while True:
         try:
-            await asyncio.to_thread(processar_reservas_no_show)
+            await asyncio.to_thread(processar_ciclo_reservas)
         except SQLAlchemyError:
-            logger.exception("Falha ao marcar reservas expiradas como NO_SHOW.")
+            logger.exception("Falha ao processar o ciclo periódico de reservas.")
         await asyncio.sleep(INTERVALO_NO_SHOW_SEGUNDOS)
 
 
@@ -48,6 +65,11 @@ Base.metadata.create_all(bind=engine)
 aplicar_migracoes(engine)
 
 app = FastAPI(title="Acessum API", lifespan=lifespan)
+app.mount(
+    "/static/avatars",
+    StaticFiles(directory=perfil.AVATAR_DIRECTORY),
+    name="avatars",
+)
 
 # --- CONFIGURAÇÃO DE CORS ATUALIZADA ---
 app.add_middleware(
@@ -64,6 +86,12 @@ app.include_router(laboratorios.router)
 app.include_router(equipamentos.router)
 app.include_router(problemas.router)
 app.include_router(reservas.router)
+app.include_router(perfil.router)
+app.include_router(dashboard.router)
+app.include_router(relatorios.router)
+app.include_router(notificacoes.router)
+app.include_router(notificacoes_conta.router)
+app.include_router(auditoria.router)
 
 @app.get("/")
 def home():

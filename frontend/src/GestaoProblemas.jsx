@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function GestaoProblemas({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -56,7 +57,7 @@ export default function GestaoProblemas({ voltar }) {
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
       {carregando ? (
-        <p role="status">A carregar relatos...</p>
+        <LoadingSpinner label="A carregar relatos..." />
       ) : relatos.length === 0 ? (
         <p>Nenhum problema reportado.</p>
       ) : (
@@ -74,24 +75,25 @@ export default function GestaoProblemas({ voltar }) {
               <p style={{ margin: '4px 0' }}>
                 Severidade: <strong>{rotuloSeveridade[relato.nivel_severidade]}</strong>
               </p>
-              <p style={{ margin: '4px 0 12px', color: relato.status === 'ABERTO' ? '#ffc107' : '#28a745', fontWeight: 'bold' }}>
+              <p style={{ margin: '4px 0 12px', color: relato.status === 'ABERTO' ? '#9a5700' : '#28a745', fontWeight: 'bold' }}>
                 Status: {relato.status}
               </p>
               <button
                 type="button"
                 onClick={() => atualizarStatus(relato)}
                 disabled={relatoEmAtualizacao === relato.id}
+                aria-busy={relatoEmAtualizacao === relato.id}
                 style={{
                   padding: '10px 14px',
                   color: '#ffffff',
-                  backgroundColor: relato.status === 'ABERTO' ? '#28a745' : '#ffc107',
+                  backgroundColor: relato.status === 'ABERTO' ? '#13835b' : '#9a5700',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
                 }}
               >
                 {relatoEmAtualizacao === relato.id
-                  ? 'A atualizar...'
+                  ? <LoadingSpinner label="A atualizar..." inline />
                   : relato.status === 'ABERTO' ? 'Marcar como resolvido' : 'Reabrir relato'}
               </button>
             </article>

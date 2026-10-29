@@ -1,5 +1,9 @@
-import React, { useContext, useState } from 'react';
+import React, { Suspense, lazy, useContext, useState } from 'react';
+import { ChevronDown, Eye, EyeOff, FlaskConical, LogOut, Settings, UserRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
+import Configuracoes from './Configuracoes';
+import MeuPerfil from './MeuPerfil';
 import GestaoUsuarios from './GestaoUsuarios';
 import GestaoLaboratorios from './GestaoLaboratorios';
 import ConsultaRecursos from './ConsultaRecursos';
@@ -7,6 +11,10 @@ import GestaoEquipamentos from './GestaoEquipamentos';
 import GestaoProblemas from './GestaoProblemas';
 import AnalisarReservas from './AnalisarReservas';
 import HistoricoReservas from './HistoricoReservas';
+import SininhoNotificacoes from './SininhoNotificacoes';
+import Auditoria from './Auditoria';
+
+const DashboardAdmin = lazy(() => import('./DashboardAdmin.jsx'));
 
 const navegacaoAluno = [
   { tela: 'CONSULTA_RECURSOS', icon: '⌕', label: 'Explorar recursos' },
@@ -14,25 +22,52 @@ const navegacaoAluno = [
 ];
 
 export default function App() {
-  const { user, login, logout, loading } = useContext(AuthContext);
+  const { user, login, logout, loading, api } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
+  const [entrando, setEntrando] = useState(false);
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const [solicitandoReset, setSolicitandoReset] = useState(false);
+  const [resetSolicitado, setResetSolicitado] = useState(false);
+  const [menuUsuarioAberto, setMenuUsuarioAberto] = useState(false);
   const [telaAtiva, setTelaAtiva] = useState('MENU'); // Controle de qual tela mostrar
 
   if (loading) {
     return (
-      <div className="app-loading" role="status">
-        <span className="loading-spinner" />
-        <span>A preparar o Acessum...</span>
+      <div className="app-loading">
+        <LoadingSpinner label="Carregando" large visuallyHiddenLabel />
       </div>
     );
   }
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const result = await login(email, senha);
-    if (!result.success) setErro(result.message);
+    setEntrando(true);
+    try {
+      const result = await login(email, senha);
+      if (!result.success) setErro(result.message);
+    } finally {
+      setEntrando(false);
+    }
+  };
+
+  const handleEsqueciSenha = async () => {
+    setErro('');
+    setResetSolicitado(false);
+    if (!email.trim()) {
+      setErro('Informe seu e-mail para solicitar a redefinição.');
+      return;
+    }
+    setSolicitandoReset(true);
+    try {
+      await api.post('/api/auth/esqueci-senha', { email });
+      setResetSolicitado(true);
+    } catch (falha) {
+      setErro(falha.response?.data?.detail || 'Não foi possível registrar a solicitação.');
+    } finally {
+      setSolicitandoReset(false);
+    }
   };
 
   const handleLogout = () => {
@@ -46,6 +81,23 @@ export default function App() {
   };
 
   if (user) {
+    if (user.deve_trocar_senha) {
+      return (
+        <main className="forced-password-page">
+          <div className="forced-password-heading">
+            <div className="login-brand">
+              <span className="brand-mark"><FlaskConical size={21} aria-hidden="true" /></span>
+              <span className="brand-name">acessum<span>.</span></span>
+            </div>
+            <button type="button" className="forced-password-logout" onClick={handleLogout}>
+              <LogOut size={17} aria-hidden="true" /> Sair
+            </button>
+          </div>
+          <MeuPerfil voltar={() => {}} trocaObrigatoria />
+        </main>
+      );
+    }
+
     const nomeTela = {
       MENU: 'Visão geral',
       CONSULTA_RECURSOS: 'Explorar recursos',
@@ -55,7 +107,14 @@ export default function App() {
       GESTAO_LABORATORIOS: 'Laboratórios',
       GESTAO_EQUIPAMENTOS: 'Equipamentos',
       GESTAO_PROBLEMAS: 'Relatos de problemas',
+      CONFIGURACOES: 'Configurações',
+      MEU_PERFIL: 'Meu perfil',
+      DASHBOARD_ADMIN: 'Dashboard',
+      AUDITORIA: 'Auditoria',
     }[telaAtiva] || 'Acessum';
+    const avatarUrl = user.avatar_url
+      ? new URL(user.avatar_url, api.defaults.baseURL).toString()
+      : '';
 
     const navItem = (tela, icon, label) => (
       <button
@@ -78,13 +137,13 @@ export default function App() {
             onClick={() => setTelaAtiva('MENU')}
             aria-label="Acessum - página inicial"
           >
-            <span className="brand-mark">A</span>
+            <span className="brand-mark"><FlaskConical size={21} aria-hidden="true" /></span>
             <span className="brand-name">acessum<span>.</span></span>
           </button>
 
           <div className="sidebar-section-label">Workspace</div>
           <nav className="sidebar-nav" aria-label="Navegação principal">
-            {navItem('MENU', '⌂', 'Visão geral')}
+            {navItem('MENU', '⌂', user.perfil === 'ALUNO' ? 'Dashboard' : 'Visão geral')}
             {['ALUNO', 'PROFESSOR'].includes(user.perfil) && navegacaoAluno.map(item => (
               navItem(item.tela, item.icon, item.label)
             ))}
@@ -92,6 +151,8 @@ export default function App() {
             {user.perfil === 'ADMINISTRADOR' && (
               <>
                 <div className="sidebar-section-label sidebar-section-spaced">Administração</div>
+                {navItem('DASHBOARD_ADMIN', '▥', 'Dashboard')}
+                {navItem('AUDITORIA', '▤', 'Auditoria')}
                 {navItem('GESTAO_USUARIOS', '♙', 'Usuários')}
                 {navItem('GESTAO_LABORATORIOS', '⌂', 'Laboratórios')}
                 {navItem('GESTAO_EQUIPAMENTOS', '▦', 'Equipamentos')}
@@ -100,18 +161,6 @@ export default function App() {
             )}
           </nav>
 
-          <div className="sidebar-footer">
-            <div className="sidebar-user">
-              <span className="user-avatar">{user.nome?.charAt(0)?.toUpperCase() || 'U'}</span>
-              <span className="sidebar-user-copy">
-                <strong>{user.nome}</strong>
-                <small>{user.perfil}</small>
-              </span>
-            </div>
-            <button type="button" className="logout-button" onClick={handleLogout}>
-              <span aria-hidden="true">↪</span> Sair do sistema
-            </button>
-          </div>
         </aside>
 
         <div className="app-workspace">
@@ -121,9 +170,40 @@ export default function App() {
               <h1>{nomeTela}</h1>
             </div>
             <div className="topbar-profile">
-              <span className="status-indicator" />
-              <span>Sessão ativa</span>
-              <span className="topbar-avatar">{user.nome?.charAt(0)?.toUpperCase() || 'U'}</span>
+              <SininhoNotificacoes />
+              <span className={`status-indicator${user.status === 'SUSPENSO' ? ' is-suspended' : ''}`} />
+              <span>{user.status === 'SUSPENSO' ? 'Conta suspensa' : 'Sessão ativa'}</span>
+              <div className="user-menu">
+                <button
+                  type="button"
+                  className="user-menu-trigger"
+                  onClick={() => setMenuUsuarioAberto(atual => !atual)}
+                  aria-expanded={menuUsuarioAberto}
+                  aria-haspopup="menu"
+                  aria-label={`Menu do usuário ${user.nome}`}
+                >
+                  {avatarUrl ? (
+                    <img className="topbar-avatar" src={avatarUrl} alt="" />
+                  ) : (
+                    <span className="topbar-avatar" aria-hidden="true">{user.nome?.charAt(0)?.toUpperCase() || 'U'}</span>
+                  )}
+                  <span className="user-menu-copy"><strong>{user.nome}</strong><small>{user.perfil}</small></span>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </button>
+                {menuUsuarioAberto && (
+                  <div className="user-menu-dropdown" role="menu" aria-label="Menu do usuário">
+                    <button type="button" role="menuitem" onClick={() => { setTelaAtiva('MEU_PERFIL'); setMenuUsuarioAberto(false); }}>
+                      <UserRound size={17} aria-hidden="true" /> Meu perfil
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setTelaAtiva('CONFIGURACOES'); setMenuUsuarioAberto(false); }}>
+                      <Settings size={17} aria-hidden="true" /> Configurações
+                    </button>
+                    <button type="button" role="menuitem" onClick={handleLogout}>
+                      <LogOut size={17} aria-hidden="true" /> Sair do sistema
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 
@@ -140,6 +220,14 @@ export default function App() {
             {telaAtiva === 'GESTAO_PROBLEMAS' && user.perfil === 'ADMINISTRADOR' && (
               <GestaoProblemas voltar={() => setTelaAtiva('MENU')} />
             )}
+            {telaAtiva === 'DASHBOARD_ADMIN' && user.perfil === 'ADMINISTRADOR' && (
+              <Suspense fallback={<LoadingSpinner label="Carregando dashboard..." />}>
+                <DashboardAdmin voltar={() => setTelaAtiva('MENU')} />
+              </Suspense>
+            )}
+            {telaAtiva === 'AUDITORIA' && user.perfil === 'ADMINISTRADOR' && (
+              <Auditoria voltar={() => setTelaAtiva('MENU')} />
+            )}
             {telaAtiva === 'ANALISAR_RESERVAS' && user.perfil === 'PROFESSOR' && (
               <AnalisarReservas voltar={() => setTelaAtiva('MENU')} />
             )}
@@ -148,6 +236,12 @@ export default function App() {
             )}
             {telaAtiva === 'CONSULTA_RECURSOS' && ['ALUNO', 'PROFESSOR'].includes(user.perfil) && (
               <ConsultaRecursos voltar={() => setTelaAtiva('MENU')} />
+            )}
+            {telaAtiva === 'CONFIGURACOES' && (
+              <Configuracoes voltar={() => setTelaAtiva('MENU')} />
+            )}
+            {telaAtiva === 'MEU_PERFIL' && (
+              <MeuPerfil voltar={() => setTelaAtiva('MENU')} />
             )}
 
             {telaAtiva === 'MENU' && (
@@ -239,7 +333,7 @@ export default function App() {
     <main className="login-page">
       <section className="login-panel">
         <div className="login-brand">
-          <span className="brand-mark">A</span>
+          <span className="brand-mark"><FlaskConical size={21} aria-hidden="true" /></span>
           <span className="brand-name">acessum<span>.</span></span>
         </div>
         <span className="eyebrow">GESTÃO DE LABORATÓRIOS</span>
@@ -256,16 +350,27 @@ export default function App() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <label htmlFor="login-password">Senha</label>
-          <input
-            id="login-password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="A sua senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-          />
-          <button type="submit" className="button-primary login-submit">Entrar na plataforma</button>
+          <div className="password-input-wrap">
+            <input
+              id="login-password"
+              type={senhaVisivel ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="Sua senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+            />
+            <button type="button" className="password-visibility-toggle" onClick={() => setSenhaVisivel(atual => !atual)} aria-label={senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'}>
+              {senhaVisivel ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            </button>
+          </div>
+          <button type="submit" className="button-primary login-submit" disabled={entrando}>
+            {entrando ? <LoadingSpinner label="Entrando..." inline /> : 'Entrar na plataforma'}
+          </button>
         </form>
+        <button type="button" className="forgot-password-link" onClick={handleEsqueciSenha} disabled={solicitandoReset}>
+          {solicitandoReset ? 'Enviando solicitação...' : 'Esqueci minha senha'}
+        </button>
+        {resetSolicitado && <p className="feedback feedback-success" role="status">Se houver uma conta ativa para este e-mail, o Administrador receberá a solicitação.</p>}
         <p className="login-footnote">Acesso seguro para a comunidade Acessum.</p>
       </section>
       <aside className="login-aside">

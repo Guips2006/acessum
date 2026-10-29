@@ -16,6 +16,9 @@ env/
 dist/
 build/
 
+# Avatares enviados pelos usuários
+backend/static/avatars/
+
 # Variáveis de ambiente e segredos
 .env
 .env.*

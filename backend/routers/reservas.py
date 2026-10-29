@@ -5,7 +5,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from auth_utils import exigir_perfil, obter_usuario_logado
+from auditoria_service import registrar_log
 from database import get_db
+from notificacoes_service import criar_notificacao
+from reservas_lifecycle import registrar_no_show
 import models
 import schemas
 
@@ -182,6 +185,7 @@ def listar_reservas_pendentes(db: Session = Depends(get_db)):
 def analisar_reserva(
     reserva_id: str,
     dados: schemas.ReservaAnaliseAtualizar,
+    ator: models.Usuario = Depends(obter_usuario_logado),
     db: Session = Depends(get_db),
 ):
     """Aprova ou recusa uma solicitação pendente após validar o estado atual."""
@@ -232,6 +236,28 @@ def analisar_reserva(
         reserva.motivo_recusa = dados.motivo_recusa
 
     reserva.status = dados.status
+    if reserva.usuario.perfil == "ALUNO":
+        aprovada = dados.status == "APROVADA"
+        criar_notificacao(
+            db,
+            usuario_id=reserva.usuario_id,
+            reserva_id=reserva.id,
+            tipo="RESERVA_APROVADA" if aprovada else "RESERVA_RECUSADA",
+            titulo="Reserva aprovada" if aprovada else "Reserva recusada",
+            mensagem=(
+                f"Sua reserva em {reserva.laboratorio.nome} foi "
+                f"{'aprovada' if aprovada else 'recusada'}."
+            ),
+        )
+    aprovada = dados.status == "APROVADA"
+    registrar_log(
+        db,
+        ator,
+        "RESERVA_APROVADA" if aprovada else "RESERVA_RECUSADA",
+        "RESERVA",
+        reserva.id,
+        f"Reserva {dados.status.lower()} para o laboratório {reserva.laboratorio.nome}.",
+    )
     try:
         db.commit()
     except SQLAlchemyError:
@@ -330,16 +356,7 @@ def fazer_checkin(
         )
 
     if agora > fim_janela:
-        resultado = (
-            db.query(models.Reserva)
-            .filter(
-                models.Reserva.id == reserva.id,
-                models.Reserva.usuario_id == usuario.id,
-                models.Reserva.status == "APROVADA",
-            )
-            .update({"status": "NO_SHOW"}, synchronize_session=False)
-        )
-        if resultado:
+        if registrar_no_show(db, reserva.id, usuario.id, agora):
             try:
                 db.commit()
             except SQLAlchemyError:
@@ -450,8 +467,25 @@ def solicitar_reserva(
     db: Session = Depends(get_db),
 ):
     """Registra uma solicitação pendente de reserva de laboratório."""
+    if usuario.status == "SUSPENSO":
+        prazo = (
+            usuario.suspensao_ate.replace(tzinfo=timezone.utc).isoformat()
+            if usuario.suspensao_ate
+            else "prazo indeterminado"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Sua conta está suspensa até {prazo}; novas reservas não são permitidas.",
+        )
+
     inicio = normalizar_utc(dados.data_inicio, "data_inicio")
     fim = normalizar_utc(dados.data_fim, "data_fim")
+    agora = datetime.now(timezone.utc).replace(tzinfo=None)
+    if inicio <= agora:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="A data de início da reserva deve estar no futuro.",
+        )
     if fim <= inicio:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

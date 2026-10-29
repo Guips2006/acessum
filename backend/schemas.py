@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -8,6 +8,9 @@ class UsuarioBase(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     email: str = Field(min_length=3, max_length=100)
     perfil: Literal["ADMINISTRADOR", "PROFESSOR", "ALUNO"]
+    cpf: str | None = None
+    rg: str | None = Field(default=None, min_length=5, max_length=30)
+    data_nascimento: date | None = None
 
     @field_validator("nome")
     @classmethod
@@ -25,8 +28,44 @@ class UsuarioBase(BaseModel):
             raise ValueError("Informe um endereço de e-mail válido.")
         return email
 
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf(cls, cpf: str | None) -> str | None:
+        if cpf is None:
+            return None
+        digitos = re.sub(r"\D", "", cpf)
+        if len(digitos) != 11 or len(set(digitos)) == 1:
+            raise ValueError("Informe um CPF válido.")
+        for posicao in (9, 10):
+            soma = sum(int(digitos[indice]) * (posicao + 1 - indice) for indice in range(posicao))
+            digito = (soma * 10) % 11
+            digito = 0 if digito == 10 else digito
+            if digito != int(digitos[posicao]):
+                raise ValueError("Informe um CPF válido.")
+        return digitos
+
+    @field_validator("rg")
+    @classmethod
+    def normalizar_rg(cls, rg: str | None) -> str | None:
+        if rg is None:
+            return None
+        normalizado = re.sub(r"[^0-9A-Za-z]", "", rg).upper()
+        if len(normalizado) < 5 or len(normalizado) > 20:
+            raise ValueError("Informe um RG válido.")
+        return normalizado
+
+    @field_validator("data_nascimento")
+    @classmethod
+    def validar_data_nascimento(cls, data_nascimento: date | None) -> date | None:
+        if data_nascimento is not None and data_nascimento >= date.today():
+            raise ValueError("A data de nascimento deve estar no passado.")
+        return data_nascimento
+
 class UsuarioCriar(UsuarioBase):
-    senha: str = Field(min_length=1, max_length=72)
+    cpf: str = Field(min_length=11, max_length=14)
+    rg: str = Field(min_length=5, max_length=30)
+    data_nascimento: date
+    senha: str = Field(min_length=12, max_length=72)
 
     @field_validator("senha")
     @classmethod
@@ -35,18 +74,94 @@ class UsuarioCriar(UsuarioBase):
             raise ValueError("A senha não pode estar vazia.")
         if len(senha.encode("utf-8")) > 72:
             raise ValueError("A senha não pode exceder 72 bytes.")
+        if not any(caractere.isalpha() for caractere in senha) or not any(caractere.isdigit() for caractere in senha):
+            raise ValueError("A senha deve conter letras e números.")
         return senha
 
 class UsuarioResponse(UsuarioBase):
     id: str
-    status: Literal["ATIVO", "INATIVO"]
+    status: Literal["ATIVO", "INATIVO", "SUSPENSO"]
+    suspensao_ate: datetime | None = None
+    deve_trocar_senha: bool = False
 
     class Config:
         from_attributes = True
 
 class UsuarioStatusResponse(BaseModel):
     id: str
-    novo_status: Literal["ATIVO", "INATIVO"]
+    novo_status: Literal["ATIVO", "INATIVO", "SUSPENSO"]
+
+class PerfilUsuarioAtualizar(BaseModel):
+    nome: str = Field(min_length=1, max_length=100)
+    cpf: str = Field(min_length=11, max_length=14)
+    rg: str = Field(min_length=5, max_length=30)
+    data_nascimento: date
+
+    @field_validator("nome")
+    @classmethod
+    def validar_nome_perfil(cls, nome: str) -> str:
+        nome = nome.strip()
+        if not nome:
+            raise ValueError("O nome é obrigatório.")
+        return nome
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf_perfil(cls, cpf: str) -> str:
+        return UsuarioBase.validar_cpf(cpf)
+
+    @field_validator("rg")
+    @classmethod
+    def validar_rg_perfil(cls, rg: str) -> str:
+        return UsuarioBase.normalizar_rg(rg)
+
+    @field_validator("data_nascimento")
+    @classmethod
+    def validar_nascimento_perfil(cls, valor: date) -> date:
+        return UsuarioBase.validar_data_nascimento(valor)
+
+class PerfilUsuarioResponse(BaseModel):
+    id: str
+    nome: str
+    email: str
+    perfil: Literal["ADMINISTRADOR", "PROFESSOR", "ALUNO"]
+    avatar_url: str | None
+    ultima_atividade: datetime | None
+    status: Literal["ATIVO", "INATIVO", "SUSPENSO"]
+    suspensao_ate: datetime | None
+    cpf: str | None
+    rg: str | None
+    data_nascimento: date | None
+    deve_trocar_senha: bool
+
+class AlterarSenha(BaseModel):
+    senha_atual: str = Field(min_length=1, max_length=72)
+    nova_senha: str = Field(min_length=12, max_length=72)
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_nova_senha(cls, senha: str) -> str:
+        if len(senha.encode("utf-8")) > 72:
+            raise ValueError("A nova senha não pode exceder 72 bytes.")
+        if not any(caractere.isalpha() for caractere in senha) or not any(caractere.isdigit() for caractere in senha):
+            raise ValueError("A nova senha deve conter letras e números.")
+        return senha
+
+class EsqueciSenhaRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=100)
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email_reset(cls, email: str) -> str:
+        return UsuarioBase.normalizar_e_validar_email(email)
+
+class ResetSenhaResponse(BaseModel):
+    notificacao_id: str
+    senha_temporaria: str
+    mensagem: str
+
+class MensagemGenericaResponse(BaseModel):
+    mensagem: str
 
 class EquipamentoBase(BaseModel):
     nome: str = Field(min_length=1, max_length=100)

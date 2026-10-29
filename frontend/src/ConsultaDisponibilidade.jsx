@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 function paraUtcIso(valorLocal) {
   return new Date(valorLocal).toISOString();
@@ -74,8 +75,8 @@ export default function ConsultaDisponibilidade({ laboratorio }) {
             style={estiloInput}
           />
         </label>
-        <button type="submit" disabled={consultando} style={estiloBotao}>
-          {consultando ? 'A consultar...' : 'Ver horários'}
+        <button type="submit" disabled={consultando} aria-busy={consultando} style={estiloBotao}>
+          {consultando ? <LoadingSpinner label="A consultar..." inline /> : 'Ver horários'}
         </button>
       </form>
 

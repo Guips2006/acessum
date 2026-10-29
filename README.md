@@ -26,6 +26,13 @@ O frontend comunica com a API através do contexto de autenticação. O endereç
 - **Check-in e no-show (SPEC-010):** check-in entre 15 minutos antes e 15 minutos depois do início; reservas sem check-in após essa janela passam a `NO_SHOW`.
 - **Encerramento (SPEC-011):** conclusão da utilização em curso e registo da hora efetiva de encerramento.
 - **Relato de problemas (SPEC-013):** registo de problemas em laboratórios ou equipamentos e gestão dos estados `ABERTO` e `RESOLVIDO`.
+- **Perfil, avatar e atividade (SPEC-015):** edição do próprio perfil, envio de avatar PNG/JPEG e registro da última atividade autenticada.
+- **Penalidades de no-show (SPEC-016):** três faltas em 30 dias suspendem o Aluno por sete dias e bloqueiam novas reservas durante o período.
+- **Dashboard administrativo (SPEC-017):** métricas de ocupação, reservas por status e evolução de não comparecimentos com filtros de período.
+- **Relatórios (SPEC-018):** exportação de reservas filtradas em CSV e PDF no dashboard administrativo e no histórico pessoal.
+- **Notificações (SPEC-019):** avisos de aprovação/recusa e lembretes de check-in em até 30 minutos, com leitura pelo sino na barra superior.
+- **Auditoria (SPEC-020):** registro e consulta administrativa de ações críticas sobre usuários, laboratórios, reservas e perfis.
+- **Refinamentos V2.1 (SPEC-021 a SPEC-024):** navegação revisada, cadastro com CPF/RG/nascimento, redefinição assistida de senha e bloqueio de datas passadas.
 
 No MVP, as reservas são feitas ao nível do laboratório. Os equipamentos são consultados como recursos associados ao laboratório, mas não são reservados independentemente.
 
