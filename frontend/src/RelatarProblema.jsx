@@ -33,12 +33,12 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
 
   return (
     <section
+      className="page-form-panel problem-report-panel"
       aria-label={`Relatar problema em ${recursoNome}`}
-      style={{ marginTop: '12px', padding: '16px', backgroundColor: '#fff4d6', border: '1px solid #d39b27', borderRadius: '8px' }}
     >
       <h4 style={{ marginTop: 0 }}>Relatar problema: {recursoNome}</h4>
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
-      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+      {erro && <p role="alert">{erro}</p>}
+      {sucesso && <p role="status">{sucesso}</p>}
       <form onSubmit={enviarRelato} style={{ display: 'grid', gap: '12px' }}>
         <label>
           Descrição do problema
@@ -49,7 +49,6 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
             maxLength={2000}
             rows={4}
             required
-            style={estiloCampo}
           />
         </label>
         <label>
@@ -57,7 +56,6 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
           <select
             value={nivelSeveridade}
             onChange={evento => setNivelSeveridade(evento.target.value)}
-            style={estiloCampo}
           >
             <option value="BAIXA">Baixa</option>
             <option value="MEDIA">Média</option>
@@ -68,7 +66,7 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
           <button type="submit" disabled={enviando} aria-busy={enviando} style={estiloBotaoEnviar}>
             {enviando ? <LoadingSpinner label="A enviar..." inline /> : 'Enviar relato'}
           </button>
-          <button type="button" onClick={fechar} style={estiloBotaoCancelar}>
+          <button type="button" onClick={fechar} className="button-secondary">
             Fechar
           </button>
         </div>
@@ -77,30 +75,11 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
   );
 }
 
-const estiloCampo = {
-  display: 'block',
-  boxSizing: 'border-box',
-  width: '100%',
-  marginTop: '6px',
-  padding: '10px',
-  border: '1px solid #cccccc',
-  borderRadius: '8px',
-};
-
 const estiloBotaoEnviar = {
   padding: '10px 14px',
   color: '#ffffff',
   backgroundColor: '#0056b3',
   border: 'none',
-  borderRadius: '8px',
-  cursor: 'pointer',
-};
-
-const estiloBotaoCancelar = {
-  padding: '10px 14px',
-  color: '#333333',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cccccc',
   borderRadius: '8px',
   cursor: 'pointer',
 };

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useContext, useState } from 'react';
+import React, { Suspense, lazy, useContext, useEffect, useRef, useState } from 'react';
 import { ChevronDown, Eye, EyeOff, FlaskConical, LogOut, Settings, UserRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -32,6 +32,20 @@ export default function App() {
   const [resetSolicitado, setResetSolicitado] = useState(false);
   const [menuUsuarioAberto, setMenuUsuarioAberto] = useState(false);
   const [telaAtiva, setTelaAtiva] = useState('MENU'); // Controle de qual tela mostrar
+  const menuUsuarioRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuUsuarioAberto) return undefined;
+
+    const fecharMenuAoClicarFora = (evento) => {
+      if (!menuUsuarioRef.current?.contains(evento.target)) {
+        setMenuUsuarioAberto(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', fecharMenuAoClicarFora);
+    return () => document.removeEventListener('pointerdown', fecharMenuAoClicarFora);
+  }, [menuUsuarioAberto]);
 
   if (loading) {
     return (
@@ -142,24 +156,26 @@ export default function App() {
           </button>
 
           <div className="sidebar-section-label">Workspace</div>
-          <nav className="sidebar-nav" aria-label="Navegação principal">
-            {navItem('MENU', '⌂', user.perfil === 'ALUNO' ? 'Dashboard' : 'Visão geral')}
-            {['ALUNO', 'PROFESSOR'].includes(user.perfil) && navegacaoAluno.map(item => (
-              navItem(item.tela, item.icon, item.label)
-            ))}
-            {user.perfil === 'PROFESSOR' && navItem('ANALISAR_RESERVAS', '✓', 'Solicitações')}
-            {user.perfil === 'ADMINISTRADOR' && (
-              <>
-                <div className="sidebar-section-label sidebar-section-spaced">Administração</div>
-                {navItem('DASHBOARD_ADMIN', '▥', 'Dashboard')}
-                {navItem('AUDITORIA', '▤', 'Auditoria')}
-                {navItem('GESTAO_USUARIOS', '♙', 'Usuários')}
-                {navItem('GESTAO_LABORATORIOS', '⌂', 'Laboratórios')}
-                {navItem('GESTAO_EQUIPAMENTOS', '▦', 'Equipamentos')}
-                {navItem('GESTAO_PROBLEMAS', '△', 'Relatos de problemas')}
-              </>
-            )}
-          </nav>
+          <div className="sidebar-nav-container">
+            <nav className="sidebar-nav" aria-label="Navegação principal">
+              {navItem('MENU', '⌂', user.perfil === 'ALUNO' ? 'Dashboard' : 'Visão geral')}
+              {['ALUNO', 'PROFESSOR'].includes(user.perfil) && navegacaoAluno.map(item => (
+                navItem(item.tela, item.icon, item.label)
+              ))}
+              {user.perfil === 'PROFESSOR' && navItem('ANALISAR_RESERVAS', '✓', 'Solicitações')}
+              {user.perfil === 'ADMINISTRADOR' && (
+                <>
+                  <div className="sidebar-section-label sidebar-section-spaced">Administração</div>
+                  {navItem('DASHBOARD_ADMIN', '▥', 'Dashboard')}
+                  {navItem('AUDITORIA', '▤', 'Auditoria')}
+                  {navItem('GESTAO_USUARIOS', '♙', 'Usuários')}
+                  {navItem('GESTAO_LABORATORIOS', '⌂', 'Laboratórios')}
+                  {navItem('GESTAO_EQUIPAMENTOS', '▦', 'Equipamentos')}
+                  {navItem('GESTAO_PROBLEMAS', '△', 'Relatos de problemas')}
+                </>
+              )}
+            </nav>
+          </div>
 
         </aside>
 
@@ -173,7 +189,7 @@ export default function App() {
               <SininhoNotificacoes />
               <span className={`status-indicator${user.status === 'SUSPENSO' ? ' is-suspended' : ''}`} />
               <span>{user.status === 'SUSPENSO' ? 'Conta suspensa' : 'Sessão ativa'}</span>
-              <div className="user-menu">
+              <div className="user-menu" ref={menuUsuarioRef}>
                 <button
                   type="button"
                   className="user-menu-trigger"
@@ -187,7 +203,10 @@ export default function App() {
                   ) : (
                     <span className="topbar-avatar" aria-hidden="true">{user.nome?.charAt(0)?.toUpperCase() || 'U'}</span>
                   )}
-                  <span className="user-menu-copy"><strong>{user.nome}</strong><small>{user.perfil}</small></span>
+                  <span className="user-menu-copy">
+                    <strong>{user.nome}</strong>
+                    <small className="user-role-badge">{user.perfil}</small>
+                  </span>
                   <ChevronDown size={16} aria-hidden="true" />
                 </button>
                 {menuUsuarioAberto && (
@@ -255,14 +274,14 @@ export default function App() {
                   <div className="welcome-graphic" aria-hidden="true">
                     <span className="graphic-orbit orbit-one" />
                     <span className="graphic-orbit orbit-two" />
-                    <span className="graphic-core">A</span>
+                    <span className="graphic-core"><FlaskConical size={30} aria-hidden="true" /></span>
                   </div>
                 </div>
 
                 <div className="section-heading">
                   <div>
                     <span className="eyebrow">ATALHOS</span>
-                    <h2>Aceda às suas tarefas</h2>
+                    <h2>Acesse as suas tarefas</h2>
                   </div>
                   <span className="profile-pill">{user.perfil}</span>
                 </div>

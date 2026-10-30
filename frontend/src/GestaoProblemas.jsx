@@ -44,38 +44,38 @@ export default function GestaoProblemas({ voltar }) {
   };
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="page-container">
       <button
         type="button"
+        className="page-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
       <h2>Relatos de Problemas</h2>
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
-      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+      {erro && <p role="alert">{erro}</p>}
+      {sucesso && <p role="status">{sucesso}</p>}
 
       {carregando ? (
         <LoadingSpinner label="A carregar relatos..." />
       ) : relatos.length === 0 ? (
         <p>Nenhum problema reportado.</p>
       ) : (
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div className="page-list">
           {relatos.map(relato => (
             <article
               key={relato.id}
-              style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+              className="page-card"
             >
               <h3 style={{ margin: '0 0 8px' }}>{relato.recurso_nome}</h3>
               <p style={{ margin: '4px 0' }}>Recurso: {relato.tipo_recurso === 'LABORATORIO' ? 'Laboratório' : 'Equipamento'}</p>
               <p style={{ margin: '4px 0' }}>Relatado por: {relato.usuario_nome}</p>
-              <p style={{ margin: '4px 0' }}>Data: {new Date(relato.data_hora).toLocaleString()}</p>
+              <p style={{ margin: '4px 0' }}>Data: {new Date(relato.data_hora).toLocaleString('pt-BR')}</p>
               <p style={{ margin: '8px 0' }}>{relato.descricao}</p>
               <p style={{ margin: '4px 0' }}>
                 Severidade: <strong>{rotuloSeveridade[relato.nivel_severidade]}</strong>
               </p>
-              <p style={{ margin: '4px 0 12px', color: relato.status === 'ABERTO' ? '#9a5700' : '#28a745', fontWeight: 'bold' }}>
+              <p className={`text-status-${relato.status === 'ABERTO' ? 'warning' : 'positive'}`} style={{ margin: '4px 0 12px', fontWeight: 'bold' }}>
                 Status: {relato.status}
               </p>
               <button

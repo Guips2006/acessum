@@ -79,20 +79,20 @@ export default function GestaoEquipamentos({ voltar }) {
   );
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="page-container">
       <button
         type="button"
+        className="page-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
 
       <h2>Gestão de Equipamentos</h2>
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
-      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+      {erro && <p role="alert">{erro}</p>}
+      {sucesso && <p role="status">{sucesso}</p>}
 
-      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div className="page-form-panel">
         <h3>Cadastrar novo equipamento</h3>
         <form onSubmit={criarEquipamento} style={{ display: 'grid', gap: '12px' }}>
           <label>
@@ -103,7 +103,6 @@ export default function GestaoEquipamentos({ voltar }) {
               onChange={e => setForm({ ...form, nome: e.target.value })}
               maxLength={100}
               required
-              style={estiloInput}
             />
           </label>
           <label>
@@ -114,7 +113,6 @@ export default function GestaoEquipamentos({ voltar }) {
               onChange={e => setForm({ ...form, descricao: e.target.value })}
               maxLength={500}
               rows={3}
-              style={estiloInput}
             />
           </label>
           <label>
@@ -124,7 +122,6 @@ export default function GestaoEquipamentos({ voltar }) {
               value={form.laboratorio_id}
               onChange={e => setForm({ ...form, laboratorio_id: e.target.value })}
               required
-              style={estiloInput}
             >
               <option value="">Selecione um laboratório ativo</option>
               {laboratoriosAtivos.map(laboratorio => (
@@ -133,7 +130,7 @@ export default function GestaoEquipamentos({ voltar }) {
             </select>
           </label>
           {laboratoriosAtivos.length === 0 && !carregando && (
-            <p role="status" style={{ color: '#856404' }}>
+            <p role="status" className="text-status-warning">
               Não há laboratórios ativos. Ative ou cadastre um laboratório antes de continuar.
             </p>
           )}
@@ -155,16 +152,16 @@ export default function GestaoEquipamentos({ voltar }) {
         ) : equipamentos.length === 0 ? (
           <p>Nenhum equipamento cadastrado.</p>
         ) : (
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div className="page-list">
             {equipamentos.map(equipamento => (
               <article
                 key={equipamento.id}
-                style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                className="page-card"
               >
                 <h4 style={{ margin: '0 0 8px' }}>{equipamento.nome}</h4>
                 <p style={{ margin: '4px 0' }}>Descrição: {equipamento.descricao || '—'}</p>
                 <p style={{ margin: '4px 0' }}>Laboratório: {nomeLaboratorio(equipamento.laboratorio_id)}</p>
-                <p style={{ margin: '4px 0 12px', color: equipamento.status === 'ATIVO' ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
+                <p className={`text-status-${equipamento.status === 'ATIVO' ? 'positive' : 'negative'}`} style={{ margin: '4px 0 12px', fontWeight: 'bold' }}>
                   Status: {equipamento.status}
                 </p>
                 <button
@@ -189,16 +186,6 @@ export default function GestaoEquipamentos({ voltar }) {
     </section>
   );
 }
-
-const estiloInput = {
-  display: 'block',
-  boxSizing: 'border-box',
-  width: '100%',
-  marginTop: '6px',
-  padding: '10px',
-  border: '1px solid #cccccc',
-  borderRadius: '8px',
-};
 
 const estiloBotaoPrimario = {
   padding: '10px 14px',

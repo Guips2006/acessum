@@ -12,10 +12,11 @@
 - A migração adiciona CPF, RG, nascimento e `deve_trocar_senha` sem inventar valores para contas existentes.
 - O endpoint público de esqueci a senha sempre retorna a mesma mensagem, exista ou não uma conta ativa para o e-mail.
 - Pedidos válidos geram notificações de conta deduplicadas para Administradores ativos. A tabela de notificações de reserva não é alterada nem recebe associações artificiais.
-- O Administrador gera senha temporária aleatória, exibida uma única vez; apenas o hash é persistido. O próximo acesso exige troca.
+- O Administrador gera senha temporária aleatória, exibida uma única vez; apenas o hash é persistido. O próximo acesso exige troca após conferência do CPF, RG e data de nascimento já cadastrados; essa etapa não altera nem revela os dados pessoais.
 
 ## Validação
 
 - CPF com dígitos inválidos, RG fora do tamanho e datas futuras são rejeitados.
 - E-mail existente e inexistente têm resposta indistinguível no reset.
 - Confirmar deduplicação, autorização Admin, senha temporária não persistida em texto e bloqueio de rotas até a troca.
+- Confirmar que dados incorretos bloqueiam a troca temporária e que a senha temporária não permite editar o perfil nem usar a troca normal de senha.

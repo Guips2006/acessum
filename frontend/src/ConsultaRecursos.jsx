@@ -32,16 +32,16 @@ export default function ConsultaRecursos({ voltar }) {
   }, [api]);
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="page-container">
       <button
         type="button"
+        className="page-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
       <h2>Recursos Disponíveis</h2>
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <p role="alert">{erro}</p>}
 
       {carregando ? (
         <LoadingSpinner label="A carregar recursos..." />
@@ -55,11 +55,11 @@ export default function ConsultaRecursos({ voltar }) {
           return (
             <article
               key={lab.id}
-              style={{ padding: '18px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+              className="page-card"
             >
-              <h3 style={{ margin: '0 0 10px', color: lab.status === 'ATIVO' ? '#333333' : '#777777' }}>
+              <h3 style={{ margin: '0 0 10px' }}>
                 {lab.nome}
-                <span style={{ fontSize: '14px', marginLeft: '10px', color: lab.status === 'ATIVO' ? '#28a745' : '#dc3545' }}>
+                <span className={`resource-status text-status-${lab.status === 'ATIVO' ? 'positive' : 'negative'}`} >
                   {lab.status}
                 </span>
               </h3>
@@ -98,7 +98,7 @@ export default function ConsultaRecursos({ voltar }) {
                   }}
                 />
               )}
-              {reservaEnviada && <p role="status" style={{ color: '#28a745' }}>{reservaEnviada}</p>}
+              {reservaEnviada && <p role="status">{reservaEnviada}</p>}
               <button
                 type="button"
                 onClick={() => setRecursoEmRelato({ tipo: 'LABORATORIO', id: lab.id, nome: lab.nome })}
@@ -115,19 +115,19 @@ export default function ConsultaRecursos({ voltar }) {
                 />
               )}
 
-              <h4 style={{ margin: '0 0 10px', fontSize: '15px' }}>Equipamentos neste laboratório</h4>
+              <h4 className="page-card-subheading">Equipamentos neste laboratório</h4>
               {equipamentos.length === 0 ? (
-                <p style={{ margin: 0, fontSize: '14px', color: '#666666' }}>Sem equipamentos vinculados.</p>
+                <p className="empty-state">Sem equipamentos vinculados.</p>
               ) : (
-                <div style={{ display: 'grid', gap: '8px' }}>
+                <div className="page-card-list">
                   {equipamentos.map(equipamento => (
                     <div
                       key={equipamento.id}
-                      style={{ padding: '12px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px' }}
+                      className="page-card-subsection"
                     >
                       <strong>{equipamento.nome}</strong>
                       {equipamento.descricao && <span> — {equipamento.descricao}</span>}
-                      <span style={{ display: 'block', marginTop: '4px', color: equipamento.status === 'ATIVO' ? '#28a745' : '#dc3545' }}>
+                      <span className={`resource-status text-status-${equipamento.status === 'ATIVO' ? 'positive' : 'negative'}`}>
                         {equipamento.status}
                       </span>
                       <button

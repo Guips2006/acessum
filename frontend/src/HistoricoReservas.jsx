@@ -2,9 +2,10 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import { baixarRelatorio } from './utils/baixarRelatorio';
+import { dataNascimentoParaIso, formatarDataNascimento } from './utils/formatosCadastro';
 
 function formatarData(valor) {
-  return new Date(valor).toLocaleString();
+  return new Date(valor).toLocaleString('pt-BR');
 }
 
 function permiteCancelar(reserva) {
@@ -121,8 +122,14 @@ export default function HistoricoReservas({ voltar }) {
       return;
     }
     if (filtroInicio && filtroFim) {
-      const inicio = new Date(`${filtroInicio}T00:00:00`);
-      const fim = new Date(`${filtroFim}T00:00:00`);
+      const inicioIso = dataNascimentoParaIso(filtroInicio);
+      const fimIso = dataNascimentoParaIso(filtroFim);
+      if (!inicioIso || !fimIso) {
+        setErro('Informe datas válidas no formato DD/MM/AAAA.');
+        return;
+      }
+      const inicio = new Date(`${inicioIso}T00:00:00`);
+      const fim = new Date(`${fimIso}T00:00:00`);
       if (fim < inicio || fim - inicio > 366 * 24 * 60 * 60 * 1000) {
         setErro('Informe um período válido de até 366 dias.');
         return;
@@ -131,10 +138,22 @@ export default function HistoricoReservas({ voltar }) {
     setExportando(true);
     const filtros = {};
     if (filtroInicio) {
-      filtros.data_inicio = new Date(`${filtroInicio}T00:00:00`).toISOString();
+      const inicioIso = dataNascimentoParaIso(filtroInicio);
+      if (!inicioIso) {
+        setErro('Informe uma data inicial válida no formato DD/MM/AAAA.');
+        setExportando(false);
+        return;
+      }
+      filtros.data_inicio = new Date(`${inicioIso}T00:00:00`).toISOString();
     }
     if (filtroFim) {
-      const fimExclusivo = new Date(`${filtroFim}T00:00:00`);
+      const fimIso = dataNascimentoParaIso(filtroFim);
+      if (!fimIso) {
+        setErro('Informe uma data final válida no formato DD/MM/AAAA.');
+        setExportando(false);
+        return;
+      }
+      const fimExclusivo = new Date(`${fimIso}T00:00:00`);
       fimExclusivo.setDate(fimExclusivo.getDate() + 1);
       filtros.data_fim = fimExclusivo.toISOString();
     }
@@ -152,34 +171,36 @@ export default function HistoricoReservas({ voltar }) {
 
   const reservasFiltradas = reservas.filter(reserva => {
     const inicio = new Date(reserva.data_inicio).getTime();
-    const inicioFiltro = filtroInicio ? new Date(`${filtroInicio}T00:00:00`).getTime() : null;
-    const fimFiltro = filtroFim ? new Date(`${filtroFim}T00:00:00`).getTime() + 24 * 60 * 60 * 1000 : null;
+    const inicioIso = dataNascimentoParaIso(filtroInicio);
+    const fimIso = dataNascimentoParaIso(filtroFim);
+    const inicioFiltro = inicioIso ? new Date(`${inicioIso}T00:00:00`).getTime() : null;
+    const fimFiltro = fimIso ? new Date(`${fimIso}T00:00:00`).getTime() + 24 * 60 * 60 * 1000 : null;
     return (!inicioFiltro || inicio >= inicioFiltro)
       && (!fimFiltro || inicio < fimFiltro)
       && (!filtroStatus || reserva.status === filtroStatus);
   });
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="page-container">
       <button
         type="button"
+        className="page-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
       <h2>Minhas reservas</h2>
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
-      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+      {erro && <p role="alert">{erro}</p>}
+      {sucesso && <p role="status">{sucesso}</p>}
 
       <div className="history-report-controls">
         <label>
           De
-          <input type="date" value={filtroInicio} max={filtroFim || undefined} onChange={evento => setFiltroInicio(evento.target.value)} />
+          <input type="text" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} value={filtroInicio} onChange={evento => setFiltroInicio(formatarDataNascimento(evento.target.value))} />
         </label>
         <label>
           Até
-          <input type="date" value={filtroFim} min={filtroInicio || undefined} onChange={evento => setFiltroFim(evento.target.value)} />
+          <input type="text" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} value={filtroFim} onChange={evento => setFiltroFim(formatarDataNascimento(evento.target.value))} />
         </label>
         <label>
           Status
@@ -215,11 +236,11 @@ export default function HistoricoReservas({ voltar }) {
           <p>Nenhuma reserva corresponde aos filtros selecionados.</p>
         )
       ) : (
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div className="page-list">
           {reservasFiltradas.map(reserva => (
             <article
               key={reserva.id}
-              style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+              className="page-card"
             >
               <h3 style={{ margin: '0 0 8px' }}>{reserva.laboratorio_nome}</h3>
               <p style={{ margin: '4px 0' }}>Início: {formatarData(reserva.data_inicio)}</p>

@@ -68,20 +68,20 @@ export default function GestaoLaboratorios({ voltar }) {
   };
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="page-container">
       <button
         type="button"
+        className="page-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
 
       <h2>Gestão de Laboratórios</h2>
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
-      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+      {erro && <p role="alert">{erro}</p>}
+      {sucesso && <p role="status">{sucesso}</p>}
 
-      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div className="page-form-panel">
         <h3>Cadastrar Novo Laboratório</h3>
         <form onSubmit={criarLaboratorio} style={{ display: 'grid', gap: '12px' }}>
           <label>
@@ -92,7 +92,6 @@ export default function GestaoLaboratorios({ voltar }) {
               onChange={e => setForm({ ...form, nome: e.target.value })}
               maxLength={100}
               required
-              style={estiloInput}
             />
           </label>
           <label>
@@ -105,7 +104,6 @@ export default function GestaoLaboratorios({ voltar }) {
               value={form.capacidade}
               onChange={e => setForm({ ...form, capacidade: e.target.value })}
               required
-              style={estiloInput}
             />
           </label>
           <button type="submit" disabled={salvando} aria-busy={salvando} style={estiloBotaoPrimario}>
@@ -121,15 +119,15 @@ export default function GestaoLaboratorios({ voltar }) {
         ) : laboratorios.length === 0 ? (
           <p>Nenhum laboratório cadastrado.</p>
         ) : (
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div className="page-list">
             {laboratorios.map(laboratorio => (
               <article
                 key={laboratorio.id}
-                style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                className="page-card"
               >
                 <h4 style={{ margin: '0 0 8px' }}>{laboratorio.nome}</h4>
                 <p style={{ margin: '4px 0' }}>Capacidade: {laboratorio.capacidade} lugares</p>
-                <p style={{ margin: '4px 0 12px', color: laboratorio.status === 'ATIVO' ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
+                <p className={`text-status-${laboratorio.status === 'ATIVO' ? 'positive' : 'negative'}`} style={{ margin: '4px 0 12px', fontWeight: 'bold' }}>
                   Status: {laboratorio.status}
                 </p>
                 <button
@@ -154,16 +152,6 @@ export default function GestaoLaboratorios({ voltar }) {
     </section>
   );
 }
-
-const estiloInput = {
-  display: 'block',
-  boxSizing: 'border-box',
-  width: '100%',
-  marginTop: '6px',
-  padding: '10px',
-  border: '1px solid #cccccc',
-  borderRadius: '8px',
-};
 
 const estiloBotaoPrimario = {
   padding: '10px 14px',

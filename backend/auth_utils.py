@@ -56,7 +56,7 @@ def obter_usuario_logado(
     rotas_troca_obrigatoria = {
         "/api/auth/me",
         "/api/auth/alterar-senha",
-        "/api/perfil/me",
+        "/api/auth/alterar-senha-temporaria",
     }
     if user.deve_trocar_senha and request.url.path not in rotas_troca_obrigatoria:
         raise HTTPException(

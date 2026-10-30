@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import re
 import secrets
 import string
 
@@ -7,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from auditoria_service import registrar_log
 from database import get_db
 from models import Usuario
 from auth_utils import (
@@ -72,9 +74,11 @@ def meu_perfil(usuario: Usuario = Depends(obter_usuario_logado)):
             else None
         ),
         "avatar_url": usuario.avatar_url,
-        "cpf": usuario.cpf,
-        "rg": usuario.rg,
-        "data_nascimento": usuario.data_nascimento,
+        "data_nascimento": (
+            None if usuario.deve_trocar_senha else usuario.data_nascimento
+        ),
+        "cpf": None if usuario.deve_trocar_senha else usuario.cpf,
+        "rg": None if usuario.deve_trocar_senha else usuario.rg,
         "deve_trocar_senha": usuario.deve_trocar_senha,
         "ultima_atividade": (
             usuario.ultima_atividade.replace(tzinfo=timezone.utc)
@@ -90,12 +94,59 @@ def alterar_senha(
     usuario: Usuario = Depends(obter_usuario_logado),
     db: Session = Depends(get_db),
 ):
+    if usuario.deve_trocar_senha:
+        raise HTTPException(
+            status_code=403,
+            detail="Confirme seus dados cadastrados para trocar a senha temporária.",
+        )
     if not verify_password(dados.senha_atual, usuario.senha_hash):
         raise HTTPException(status_code=400, detail="A senha atual está incorreta.")
     if verify_password(dados.nova_senha, usuario.senha_hash):
         raise HTTPException(status_code=400, detail="Escolha uma senha diferente da atual.")
     usuario.senha_hash = get_password_hash(dados.nova_senha)
     usuario.deve_trocar_senha = False
+    db.commit()
+    return {"mensagem": "Senha alterada com sucesso.", "deve_trocar_senha": False}
+
+
+@router.post("/alterar-senha-temporaria")
+def alterar_senha_temporaria(
+    dados: schemas.AlterarSenhaTemporaria,
+    usuario: Usuario = Depends(obter_usuario_logado),
+    db: Session = Depends(get_db),
+):
+    if not usuario.deve_trocar_senha:
+        raise HTTPException(
+            status_code=409,
+            detail="Esta operação só está disponível para senhas temporárias.",
+        )
+
+    identidade_confere = (
+        re.sub(r"\D", "", usuario.cpf or "") == dados.cpf
+        and re.sub(r"[^0-9A-Za-z]", "", usuario.rg or "").upper() == dados.rg
+        and usuario.data_nascimento == dados.data_nascimento
+    )
+    if not identidade_confere:
+        raise HTTPException(
+            status_code=400,
+            detail="Os dados informados não correspondem ao cadastro.",
+        )
+    if verify_password(dados.nova_senha, usuario.senha_hash):
+        raise HTTPException(
+            status_code=400,
+            detail="Escolha uma senha diferente da senha temporária.",
+        )
+
+    usuario.senha_hash = get_password_hash(dados.nova_senha)
+    usuario.deve_trocar_senha = False
+    registrar_log(
+        db,
+        usuario,
+        "SENHA_REDEFINIDA",
+        "USUARIO",
+        usuario.id,
+        "Senha temporária atualizada após conferência dos dados cadastrais.",
+    )
     db.commit()
     return {"mensagem": "Senha alterada com sucesso.", "deve_trocar_senha": False}
 

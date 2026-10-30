@@ -1,15 +1,19 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { dataNascimentoParaIso, formatarDataNascimento } from './utils/formatosCadastro';
 
 const LIMITE_PAGINA = 50;
 
 function parametrosPeriodo(inicio, fim, deslocamento) {
   const parametros = { limite: LIMITE_PAGINA, deslocamento };
   if (inicio && fim) {
-    const dataFimExclusiva = new Date(`${fim}T00:00:00`);
+    const inicioIso = dataNascimentoParaIso(inicio);
+    const fimIso = dataNascimentoParaIso(fim);
+    if (!inicioIso || !fimIso) return parametros;
+    const dataFimExclusiva = new Date(`${fimIso}T00:00:00`);
     dataFimExclusiva.setDate(dataFimExclusiva.getDate() + 1);
-    parametros.data_inicio = new Date(`${inicio}T00:00:00`).toISOString();
+    parametros.data_inicio = new Date(`${inicioIso}T00:00:00`).toISOString();
     parametros.data_fim = dataFimExclusiva.toISOString();
   }
   return parametros;
@@ -59,7 +63,13 @@ export default function Auditoria({ voltar }) {
       setErro('Informe as datas inicial e final juntas.');
       return;
     }
-    if (dataInicio && dataFim && dataFim < dataInicio) {
+    const inicioIso = dataNascimentoParaIso(dataInicio);
+    const fimIso = dataNascimentoParaIso(dataFim);
+    if ((dataInicio && !inicioIso) || (dataFim && !fimIso)) {
+      setErro('Informe datas válidas no formato DD/MM/AAAA.');
+      return;
+    }
+    if (inicioIso && fimIso && fimIso < inicioIso) {
       setErro('A data final deve ser igual ou posterior à inicial.');
       return;
     }
@@ -86,11 +96,11 @@ export default function Auditoria({ voltar }) {
       <form className="audit-filters" onSubmit={aplicarFiltros}>
         <label>
           De
-          <input type="date" value={dataInicio} max={dataFim || undefined} onChange={evento => setDataInicio(evento.target.value)} />
+          <input type="text" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} value={dataInicio} onChange={evento => setDataInicio(formatarDataNascimento(evento.target.value))} />
         </label>
         <label>
           Até
-          <input type="date" value={dataFim} min={dataInicio || undefined} onChange={evento => setDataFim(evento.target.value)} />
+          <input type="text" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} value={dataFim} onChange={evento => setDataFim(formatarDataNascimento(evento.target.value))} />
         </label>
         <label>
           Ação

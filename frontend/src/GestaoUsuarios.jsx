@@ -2,6 +2,42 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { dataNascimentoParaIso, formatarDataNascimento, formatarRg } from './utils/formatosCadastro';
+
+const camposUsuario = {
+  nome: 'Nome',
+  email: 'E-mail',
+  cpf: 'CPF',
+  rg: 'RG',
+  data_nascimento: 'Data de nascimento',
+  senha: 'Senha',
+  perfil: 'Perfil',
+};
+
+function mensagemErroApi(detail, fallback) {
+  if (typeof detail === 'string') return detail;
+  if (!Array.isArray(detail)) return fallback;
+
+  const mensagens = detail.flatMap(item => {
+    if (typeof item === 'string') return [item];
+    if (typeof item?.msg !== 'string') return [];
+
+    const campo = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : null;
+    const rotulo = camposUsuario[campo] || campo;
+    const mensagem = item.msg.replace(/^Value error,\s*/, '');
+    return [rotulo ? `${rotulo}: ${mensagem}` : mensagem];
+  });
+
+  return mensagens.length > 0 ? mensagens.join(' ') : fallback;
+}
+
+function formatarCpf(valor) {
+  const digitos = valor.replace(/\D/g, '').slice(0, 11);
+  if (digitos.length <= 3) return digitos;
+  if (digitos.length <= 6) return `${digitos.slice(0, 3)}.${digitos.slice(3)}`;
+  if (digitos.length <= 9) return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6)}`;
+  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`;
+}
 
 export default function GestaoUsuarios({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -47,14 +83,27 @@ export default function GestaoUsuarios({ voltar }) {
     e.preventDefault();
     setErro('');
     setSucesso('');
+    const dataNascimentoIso = dataNascimentoParaIso(form.data_nascimento);
+    if (!dataNascimentoIso) {
+      setErro('Informe uma data de nascimento válida no formato DD/MM/AAAA.');
+      return;
+    }
+
     setSalvando(true);
     try {
-      await api.post('/api/usuarios/', form);
+      await api.post('/api/usuarios/', {
+        ...form,
+        data_nascimento: dataNascimentoIso,
+      });
       setForm({ nome: '', email: '', cpf: '', rg: '', data_nascimento: '', perfil: 'ALUNO', senha: '' });
       setSucesso('Usuário cadastrado com sucesso.');
       await carregarUsuarios();
     } catch (err) {
-      setErro(err.response?.data?.detail || 'Erro ao criar usuário.');
+      setErro(
+        err.code === 'ECONNABORTED'
+          ? 'A API não respondeu em 15 segundos. Verifique se o backend está ativo e se o endereço configurado está correto.'
+          : mensagemErroApi(err.response?.data?.detail, 'Erro ao criar usuário.')
+      );
     } finally {
       setSalvando(false);
     }
@@ -105,20 +154,20 @@ export default function GestaoUsuarios({ voltar }) {
   };
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="page-container">
       <button
         type="button"
+        className="page-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e0e0e0', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
 
       <h2>Gestão de Usuários</h2>
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
-      {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
+      {erro && <p role="alert">{erro}</p>}
+      {sucesso && <p role="status">{sucesso}</p>}
 
-      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div className="page-form-panel">
         <h3>Cadastrar novo usuário</h3>
         <form onSubmit={criarUsuario} style={{ display: 'grid', gap: '12px' }}>
           <label>
@@ -130,7 +179,6 @@ export default function GestaoUsuarios({ voltar }) {
               onChange={e => setForm({ ...form, nome: e.target.value })}
               maxLength={100}
               required
-              style={estiloInput}
             />
           </label>
           <label>
@@ -143,7 +191,6 @@ export default function GestaoUsuarios({ voltar }) {
               onChange={e => setForm({ ...form, email: e.target.value })}
               maxLength={100}
               required
-              style={estiloInput}
             />
           </label>
           <label>
@@ -153,34 +200,36 @@ export default function GestaoUsuarios({ voltar }) {
               inputMode="numeric"
               autoComplete="off"
               value={form.cpf}
-              onChange={e => setForm({ ...form, cpf: e.target.value })}
+              onChange={e => setForm({ ...form, cpf: formatarCpf(e.target.value) })}
+              placeholder="000.000.000-00"
               maxLength={14}
               required
-              style={estiloInput}
             />
           </label>
           <label>
             RG
             <input
               name="rg"
+              inputMode="text"
               autoComplete="off"
               value={form.rg}
-              onChange={e => setForm({ ...form, rg: e.target.value })}
+              onChange={e => setForm({ ...form, rg: formatarRg(e.target.value) })}
+              placeholder="00.000.000-0"
               maxLength={30}
               required
-              style={estiloInput}
             />
           </label>
           <label>
             Data de nascimento
             <input
               name="data_nascimento"
-              type="date"
-              max={new Date().toISOString().slice(0, 10)}
+              type="text"
+              inputMode="numeric"
+              placeholder="DD/MM/AAAA"
+              maxLength={10}
               value={form.data_nascimento}
-              onChange={e => setForm({ ...form, data_nascimento: e.target.value })}
+              onChange={e => setForm({ ...form, data_nascimento: formatarDataNascimento(e.target.value) })}
               required
-              style={estiloInput}
             />
           </label>
           <label>
@@ -194,7 +243,6 @@ export default function GestaoUsuarios({ voltar }) {
               minLength={12}
               maxLength={72}
               required
-              style={estiloInput}
             />
             <small>A senha deve ter ao menos 12 caracteres, com letras e números.</small>
           </label>
@@ -204,7 +252,6 @@ export default function GestaoUsuarios({ voltar }) {
               name="perfil"
               value={form.perfil}
               onChange={e => setForm({ ...form, perfil: e.target.value })}
-              style={estiloInput}
             >
             <option value="ALUNO">Aluno</option>
             <option value="PROFESSOR">Professor</option>
@@ -262,16 +309,16 @@ export default function GestaoUsuarios({ voltar }) {
         ) : usuarios.length === 0 ? (
           <p>Nenhum usuário cadastrado.</p>
         ) : (
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div className="page-list">
             {usuarios.map(usuario => (
               <article
                 key={usuario.id}
-                style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                className="page-card"
               >
                 <h4 style={{ margin: '0 0 8px' }}>{usuario.nome}</h4>
                 <p style={{ margin: '4px 0' }}>{usuario.email}</p>
                 <p style={{ margin: '4px 0' }}>Perfil: {usuario.perfil}</p>
-                <p style={{ margin: '4px 0 12px', color: usuario.status === 'ATIVO' ? '#28a745' : usuario.status === 'SUSPENSO' ? '#a96b0a' : '#dc3545', fontWeight: 'bold' }}>
+                <p className={`text-status-${usuario.status === 'ATIVO' ? 'positive' : usuario.status === 'SUSPENSO' ? 'warning' : 'negative'}`} style={{ margin: '4px 0 12px', fontWeight: 'bold' }}>
                   Status: {usuario.status}
                   {usuario.suspensao_ate && ` até ${new Date(usuario.suspensao_ate).toLocaleString('pt-BR')}`}
                 </p>
@@ -297,16 +344,6 @@ export default function GestaoUsuarios({ voltar }) {
     </section>
   );
 }
-
-const estiloInput = {
-  display: 'block',
-  boxSizing: 'border-box',
-  width: '100%',
-  marginTop: '6px',
-  padding: '10px',
-  border: '1px solid #cccccc',
-  borderRadius: '8px',
-};
 
 const estiloBotaoPrimario = {
   padding: '10px 14px',

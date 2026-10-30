@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { dataHoraParaIsoLocal, formatarDataHora } from './utils/formatosCadastro';
 
 function paraUtcIso(valorLocal) {
   return new Date(valorLocal).toISOString();
@@ -19,8 +20,7 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
   const suspenso = user.status === 'SUSPENSO';
-  const agoraLocal = dataHoraLocal(new Date());
-  const minimoFim = dataInicio || agoraLocal;
+  const agoraLocalIso = dataHoraLocal(new Date());
   const fimSuspensao = user.suspensao_ate
     ? new Date(user.suspensao_ate).toLocaleString('pt-BR')
     : '';
@@ -29,9 +29,19 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
     evento.preventDefault();
     setErro('');
 
-    const inicio = new Date(dataInicio);
-    const fim = new Date(dataFim);
-    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime()) || fim <= inicio) {
+    const inicioLocal = dataHoraParaIsoLocal(dataInicio);
+    const fimLocal = dataHoraParaIsoLocal(dataFim);
+    if (!inicioLocal || !fimLocal) {
+      setErro('Informe datas e horários válidos no formato DD/MM/AAAA HH:mm.');
+      return;
+    }
+    const inicio = new Date(inicioLocal);
+    const fim = new Date(fimLocal);
+    if (inicio < new Date(agoraLocalIso)) {
+      setErro('A data de início da reserva deve estar no futuro.');
+      return;
+    }
+    if (fim <= inicio) {
       setErro('Informe um período válido; o fim deve ser posterior ao início.');
       return;
     }
@@ -40,8 +50,8 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
     try {
       const response = await api.post('/api/reservas/', {
         recurso_id: laboratorio.id,
-        data_inicio: paraUtcIso(dataInicio),
-        data_fim: paraUtcIso(dataFim),
+        data_inicio: paraUtcIso(inicioLocal),
+        data_fim: paraUtcIso(fimLocal),
         finalidade: finalidade.trim(),
       });
       solicitada(response.data);
@@ -54,8 +64,8 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
 
   return (
     <section
+      className="page-form-panel"
       aria-label={`Solicitar reserva de ${laboratorio.nome}`}
-      style={{ marginTop: '14px', padding: '16px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px' }}
     >
       <h4 style={{ marginTop: 0 }}>Solicitar reserva: {laboratorio.nome}</h4>
       {suspenso && (
@@ -63,28 +73,30 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
           Sua conta está suspensa{fimSuspensao ? ` até ${fimSuspensao}` : ''}. Novas reservas estão bloqueadas.
         </p>
       )}
-      {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <p role="alert">{erro}</p>}
       <form onSubmit={enviarSolicitacao} style={{ display: 'grid', gap: '12px' }}>
         <label>
           Início
           <input
-            type="datetime-local"
-            min={agoraLocal}
+            type="text"
+            inputMode="numeric"
+            placeholder="DD/MM/AAAA HH:mm"
+            maxLength={16}
             value={dataInicio}
-            onChange={evento => setDataInicio(evento.target.value)}
+            onChange={evento => setDataInicio(formatarDataHora(evento.target.value))}
             required
-            style={estiloInput}
           />
         </label>
         <label>
           Fim
           <input
-            type="datetime-local"
-            min={minimoFim}
+            type="text"
+            inputMode="numeric"
+            placeholder="DD/MM/AAAA HH:mm"
+            maxLength={16}
             value={dataFim}
-            onChange={evento => setDataFim(evento.target.value)}
+            onChange={evento => setDataFim(formatarDataHora(evento.target.value))}
             required
-            style={estiloInput}
           />
         </label>
         <label>
@@ -95,14 +107,13 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
             maxLength={500}
             rows={3}
             required
-            style={estiloInput}
           />
         </label>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button type="submit" disabled={enviando || suspenso} aria-busy={enviando} style={estiloBotaoPrimario}>
             {enviando ? <LoadingSpinner label="A enviar..." inline /> : 'Enviar solicitação'}
           </button>
-          <button type="button" onClick={fechar} style={estiloBotaoSecundario}>
+          <button type="button" onClick={fechar} className="button-secondary">
             Fechar
           </button>
         </div>
@@ -111,30 +122,11 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
   );
 }
 
-const estiloInput = {
-  display: 'block',
-  boxSizing: 'border-box',
-  width: '100%',
-  marginTop: '6px',
-  padding: '10px',
-  border: '1px solid #cccccc',
-  borderRadius: '8px',
-};
-
 const estiloBotaoPrimario = {
   padding: '10px 14px',
   color: '#ffffff',
   backgroundColor: '#0056b3',
   border: 'none',
-  borderRadius: '8px',
-  cursor: 'pointer',
-};
-
-const estiloBotaoSecundario = {
-  padding: '10px 14px',
-  color: '#333333',
-  backgroundColor: '#ffffff',
-  border: '1px solid #cccccc',
   borderRadius: '8px',
   cursor: 'pointer',
 };

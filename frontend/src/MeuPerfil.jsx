@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Camera, LockKeyhole, Upload } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { dataNascimentoParaIso, formatarDataNascimento, formatarRg, isoParaData } from './utils/formatosCadastro';
 
 const TAMANHO_MAXIMO_AVATAR = 5 * 1024 * 1024;
 const TIPOS_AVATAR = ['image/jpeg', 'image/png'];
@@ -27,7 +28,7 @@ export default function MeuPerfil({ voltar }) {
   const [nome, setNome] = useState(user.nome || '');
   const [cpf, setCpf] = useState(user.cpf || '');
   const [rg, setRg] = useState(user.rg || '');
-  const [dataNascimento, setDataNascimento] = useState(user.data_nascimento || '');
+  const [dataNascimento, setDataNascimento] = useState(isoParaData(user.data_nascimento));
   const [avatar, setAvatar] = useState(null);
   const [preview, setPreview] = useState('');
   const [erro, setErro] = useState('');
@@ -37,6 +38,9 @@ export default function MeuPerfil({ voltar }) {
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [cpfVerificacao, setCpfVerificacao] = useState('');
+  const [rgVerificacao, setRgVerificacao] = useState('');
+  const [nascimentoVerificacao, setNascimentoVerificacao] = useState('');
   const [alterandoSenha, setAlterandoSenha] = useState(false);
 
   useEffect(() => {
@@ -45,10 +49,12 @@ export default function MeuPerfil({ voltar }) {
       .then(resposta => {
         if (!ativo) return;
         atualizarUsuario(resposta.data);
-        setNome(resposta.data.nome);
-        setCpf(resposta.data.cpf || '');
-        setRg(resposta.data.rg || '');
-        setDataNascimento(resposta.data.data_nascimento || '');
+        if (!resposta.data.deve_trocar_senha) {
+          setNome(resposta.data.nome);
+          setCpf(resposta.data.cpf || '');
+          setRg(resposta.data.rg || '');
+          setDataNascimento(isoParaData(resposta.data.data_nascimento));
+        }
       })
       .catch(() => {
         if (ativo) setErro('Não foi possível carregar os dados do perfil.');
@@ -88,12 +94,17 @@ export default function MeuPerfil({ voltar }) {
     evento.preventDefault();
     setErro('');
     setSucesso('');
+    const dataNascimentoIso = dataNascimentoParaIso(dataNascimento);
+    if (!dataNascimentoIso) {
+      setErro('Informe uma data de nascimento válida no formato DD/MM/AAAA.');
+      return;
+    }
     setSalvando(true);
     const dados = new FormData();
     dados.append('nome', nome);
     dados.append('cpf', cpf);
     dados.append('rg', rg);
-    dados.append('data_nascimento', dataNascimento);
+    dados.append('data_nascimento', dataNascimentoIso);
     if (avatar) dados.append('avatar', avatar);
 
     try {
@@ -102,7 +113,7 @@ export default function MeuPerfil({ voltar }) {
       setNome(resposta.data.nome);
       setCpf(resposta.data.cpf || '');
       setRg(resposta.data.rg || '');
-      setDataNascimento(resposta.data.data_nascimento || '');
+      setDataNascimento(isoParaData(resposta.data.data_nascimento));
       setAvatar(null);
       setPreview('');
       setSucesso('Perfil atualizado com sucesso.');
@@ -121,13 +132,37 @@ export default function MeuPerfil({ voltar }) {
       setErro('A nova senha e a confirmação devem ser iguais.');
       return;
     }
+    const dataNascimentoIso = user.deve_trocar_senha
+      ? dataNascimentoParaIso(nascimentoVerificacao)
+      : null;
+    if (user.deve_trocar_senha && !dataNascimentoIso) {
+      setErro('Informe uma data de nascimento válida no formato DD/MM/AAAA.');
+      return;
+    }
+
     setAlterandoSenha(true);
     try {
-      const resposta = await api.post('/api/auth/alterar-senha', {
-        senha_atual: senhaAtual,
-        nova_senha: novaSenha,
-      });
-      atualizarUsuario({ deve_trocar_senha: resposta.data.deve_trocar_senha });
+      const resposta = user.deve_trocar_senha
+        ? await api.post('/api/auth/alterar-senha-temporaria', {
+          cpf: cpfVerificacao,
+          rg: rgVerificacao,
+          data_nascimento: dataNascimentoIso,
+          nova_senha: novaSenha,
+        })
+        : await api.post('/api/auth/alterar-senha', {
+          senha_atual: senhaAtual,
+          nova_senha: novaSenha,
+        });
+      if (user.deve_trocar_senha) {
+        const perfil = await api.get('/api/auth/me');
+        atualizarUsuario(perfil.data);
+        setNome(perfil.data.nome);
+        setCpf(perfil.data.cpf || '');
+        setRg(perfil.data.rg || '');
+        setDataNascimento(isoParaData(perfil.data.data_nascimento));
+      } else {
+        atualizarUsuario({ deve_trocar_senha: resposta.data.deve_trocar_senha });
+      }
       setSenhaAtual('');
       setNovaSenha('');
       setConfirmarSenha('');
@@ -154,7 +189,7 @@ export default function MeuPerfil({ voltar }) {
       <h2 id="profile-title">Meu perfil</h2>
       {user.deve_trocar_senha && (
         <p className="feedback feedback-error" role="alert">
-          Sua senha foi redefinida. Atualize os dados cadastrais e escolha uma nova senha para continuar.
+          Sua senha foi redefinida. Confirme seus dados cadastrados e escolha uma nova senha para continuar. Os dados cadastrais não serão alterados.
         </p>
       )}
       {erro && <p className="feedback feedback-error" role="alert">{erro}</p>}
@@ -162,6 +197,34 @@ export default function MeuPerfil({ voltar }) {
 
       {carregandoPerfil ? (
         <LoadingSpinner label="Carregando perfil..." />
+      ) : user.deve_trocar_senha ? (
+        <form className="profile-form profile-password-form" onSubmit={alterarSenha}>
+          <h3><LockKeyhole size={18} aria-hidden="true" /> Confirmar identidade e redefinir senha</h3>
+          <label htmlFor="reset-cpf">
+            CPF cadastrado
+            <input id="reset-cpf" name="cpf" inputMode="numeric" autoComplete="off" maxLength={14} value={cpfVerificacao} onChange={evento => setCpfVerificacao(evento.target.value)} required />
+          </label>
+          <label htmlFor="reset-rg">
+            RG cadastrado
+            <input id="reset-rg" name="rg" autoComplete="off" maxLength={30} placeholder="00.000.000-0" value={rgVerificacao} onChange={evento => setRgVerificacao(formatarRg(evento.target.value))} required />
+          </label>
+          <label htmlFor="reset-birth-date">
+            Data de nascimento cadastrada
+            <input id="reset-birth-date" name="data_nascimento" type="text" inputMode="numeric" placeholder="DD/MM/AAAA" maxLength={10} value={nascimentoVerificacao} onChange={evento => setNascimentoVerificacao(formatarDataNascimento(evento.target.value))} required />
+          </label>
+          <label htmlFor="new-password">
+            Nova senha
+            <input id="new-password" type="password" autoComplete="new-password" minLength={12} maxLength={72} value={novaSenha} onChange={evento => setNovaSenha(evento.target.value)} required />
+            <small>Use pelo menos 12 caracteres, com letras e números.</small>
+          </label>
+          <label htmlFor="confirm-password">
+            Confirmar nova senha
+            <input id="confirm-password" type="password" autoComplete="new-password" minLength={12} maxLength={72} value={confirmarSenha} onChange={evento => setConfirmarSenha(evento.target.value)} required />
+          </label>
+          <button type="submit" disabled={alterandoSenha} aria-busy={alterandoSenha}>
+            {alterandoSenha ? <LoadingSpinner label="Verificando dados..." inline /> : 'Confirmar dados e atualizar senha'}
+          </button>
+        </form>
       ) : (
       <>
       <form className="profile-form" onSubmit={salvarPerfil}>
@@ -223,10 +286,12 @@ export default function MeuPerfil({ voltar }) {
           <input
             id="profile-birth-date"
             name="data_nascimento"
-            type="date"
-            max={new Date().toISOString().slice(0, 10)}
+            type="text"
+            inputMode="numeric"
+            placeholder="DD/MM/AAAA"
+            maxLength={10}
             value={dataNascimento}
-            onChange={evento => setDataNascimento(evento.target.value)}
+            onChange={evento => setDataNascimento(formatarDataNascimento(evento.target.value))}
             required
           />
         </label>

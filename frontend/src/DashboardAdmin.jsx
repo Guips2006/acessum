@@ -13,6 +13,7 @@ import {
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import { baixarRelatorio } from './utils/baixarRelatorio';
+import { dataNascimentoParaIso, formatarDataNascimento, isoParaData } from './utils/formatosCadastro';
 
 const CORES_STATUS = {
   PENDENTE: '#c27b12',
@@ -50,10 +51,13 @@ function periodoPadrao() {
 }
 
 function parametrosPeriodo(inicio, fim) {
-  const dataFimExclusiva = new Date(`${fim}T00:00:00`);
+  const inicioIso = dataNascimentoParaIso(inicio);
+  const fimIso = dataNascimentoParaIso(fim);
+  if (!inicioIso || !fimIso) return {};
+  const dataFimExclusiva = new Date(`${fimIso}T00:00:00`);
   dataFimExclusiva.setDate(dataFimExclusiva.getDate() + 1);
   return {
-    data_inicio: new Date(`${inicio}T00:00:00`).toISOString(),
+    data_inicio: new Date(`${inicioIso}T00:00:00`).toISOString(),
     data_fim: dataFimExclusiva.toISOString(),
   };
 }
@@ -68,8 +72,8 @@ function formatarDataCurta(valor) {
 export default function DashboardAdmin({ voltar }) {
   const { api } = useContext(AuthContext);
   const periodoInicial = periodoPadrao();
-  const [dataInicio, setDataInicio] = useState(periodoInicial.inicio);
-  const [dataFim, setDataFim] = useState(periodoInicial.fim);
+  const [dataInicio, setDataInicio] = useState(isoParaData(periodoInicial.inicio));
+  const [dataFim, setDataFim] = useState(isoParaData(periodoInicial.fim));
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -92,12 +96,14 @@ export default function DashboardAdmin({ voltar }) {
   };
 
   useEffect(() => {
-    carregarDados(periodoInicial.inicio, periodoInicial.fim);
+    carregarDados(isoParaData(periodoInicial.inicio), isoParaData(periodoInicial.fim));
   }, [api]);
 
   const aplicarPeriodo = (evento) => {
     evento.preventDefault();
-    if (!dataInicio || !dataFim || dataFim < dataInicio) {
+    const inicioIso = dataNascimentoParaIso(dataInicio);
+    const fimIso = dataNascimentoParaIso(dataFim);
+    if (!inicioIso || !fimIso || fimIso < inicioIso) {
       setErro('Informe um período válido, com a data final igual ou posterior à inicial.');
       return;
     }
@@ -135,20 +141,24 @@ export default function DashboardAdmin({ voltar }) {
           <label>
             De
             <input
-              type="date"
+              type="text"
+              inputMode="numeric"
+              placeholder="DD/MM/AAAA"
+              maxLength={10}
               value={dataInicio}
-              max={dataFim || undefined}
-              onChange={evento => setDataInicio(evento.target.value)}
+              onChange={evento => setDataInicio(formatarDataNascimento(evento.target.value))}
               required
             />
           </label>
           <label>
             Até
             <input
-              type="date"
+              type="text"
+              inputMode="numeric"
+              placeholder="DD/MM/AAAA"
+              maxLength={10}
               value={dataFim}
-              min={dataInicio || undefined}
-              onChange={evento => setDataFim(evento.target.value)}
+              onChange={evento => setDataFim(formatarDataNascimento(evento.target.value))}
               required
             />
           </label>

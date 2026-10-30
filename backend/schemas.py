@@ -141,11 +141,35 @@ class AlterarSenha(BaseModel):
     @field_validator("nova_senha")
     @classmethod
     def validar_nova_senha(cls, senha: str) -> str:
-        if len(senha.encode("utf-8")) > 72:
-            raise ValueError("A nova senha não pode exceder 72 bytes.")
-        if not any(caractere.isalpha() for caractere in senha) or not any(caractere.isdigit() for caractere in senha):
-            raise ValueError("A nova senha deve conter letras e números.")
-        return senha
+        return validar_nova_senha(senha)
+
+class AlterarSenhaTemporaria(BaseModel):
+    cpf: str = Field(min_length=11, max_length=14)
+    rg: str = Field(min_length=5, max_length=30)
+    data_nascimento: date
+    nova_senha: str = Field(min_length=12, max_length=72)
+
+    @field_validator("cpf")
+    @classmethod
+    def normalizar_cpf(cls, cpf: str) -> str:
+        return re.sub(r"\D", "", cpf)
+
+    @field_validator("rg")
+    @classmethod
+    def normalizar_rg(cls, rg: str) -> str:
+        return re.sub(r"[^0-9A-Za-z]", "", rg).upper()
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_nova_senha_temporaria(cls, senha: str) -> str:
+        return validar_nova_senha(senha)
+
+def validar_nova_senha(senha: str) -> str:
+    if len(senha.encode("utf-8")) > 72:
+        raise ValueError("A nova senha não pode exceder 72 bytes.")
+    if not any(caractere.isalpha() for caractere in senha) or not any(caractere.isdigit() for caractere in senha):
+        raise ValueError("A nova senha deve conter letras e números.")
+    return senha
 
 class EsqueciSenhaRequest(BaseModel):
     email: str = Field(min_length=3, max_length=100)
