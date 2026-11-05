@@ -66,7 +66,7 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
         </label>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button type="submit" disabled={enviando} aria-busy={enviando} style={estiloBotaoEnviar}>
-            {enviando ? <LoadingSpinner label="A enviar..." inline /> : 'Enviar relato'}
+            {enviando ? <LoadingSpinner label="Enviando..." inline /> : 'Enviar relato'}
           </button>
           <button type="button" onClick={fechar} style={estiloBotaoCancelar}>
             Fechar

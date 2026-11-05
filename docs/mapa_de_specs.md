@@ -1,16 +1,18 @@
 # Mapa de Specs — Acessum
 
 > Documento gerado seguindo o processo de Spec-Driven Development (SDD) descrito em `Prompt_SDD_Specs.pdf`.
-> Fonte de verdade: artefatos de modelagem no branch `development` (`README.md`, `docs/visao.md`, `docs/personas.md`,
-> `docs/requisitos.md`, `docs/dominio.md`, `docs/casos_de_uso/*`).
+> Fonte de verdade da implementação: código atual e SPECs individuais. `docs/visao.md`, `docs/personas.md`,
+> `docs/requisitos.md` e `docs/casos_de_uso/*` descrevem a baseline acadêmica e foram alinhados ao escopo
+> implementado; diagramas PNG legados não são fonte de verdade.
 >
-> Este documento apresenta o mapa de Specs do MVP e da evolução V2.0. As SPECs 001–013 descrevem o escopo do MVP;
-> a SPEC-014 registra a primeira entrega V2.0.
+> Este documento acompanha as funcionalidades do MVP até a V2.1. As SPECs 001–013 cobrem o escopo inicial; as
+> SPECs 014–029 registram as evoluções implementadas.
 
 ## Status
 
-- [ ] Mapa aprovado pela equipe
-- Última atualização: 2026-10-29
+- Mapa de cobertura atualizado com base no código atual
+- Cobertura de implementação registrada: SPEC-001 a SPEC-029 — CONCLUÍDO
+- Última atualização: 2026-11-04
 
 ## Decisões incorporadas
 
@@ -21,35 +23,78 @@ Decisões já tomadas pela equipe e aplicadas neste mapa (resolvem ambiguidades 
    `casos_de_uso-aluno.png` (tema biblioteca) está desatualizado e foi descartado.
 3. O **Professor** tem casos de uso próprios de reservar, fazer check-in, devolver e reportar problema — além de
    aprovar/recusar solicitações de terceiros.
-4. Equipamento pode ser reservado de forma **independente** do laboratório ao qual pertence (exige ajuste no
-   modelo de domínio atual, que hoje só permite reserva de equipamento dentro de uma reserva de laboratório).
-5. Serão criados RFs formais para as ações administrativas (hoje existem apenas como casos de uso do Admin, sem
-   RF correspondente em `requisitos.md`).
+4. A reserva implementada é de laboratório; equipamentos são associados ao laboratório e consultados, mas não
+   possuem fluxo de reserva independente.
+5. Os RFs de `requisitos.md` ainda representam a baseline acadêmica; os fluxos adicionais estão detalhados nas
+   SPECs individuais e não devem ser interpretados como RFs já incorporados àquela baseline.
 6. Professor e Administrador usam o mesmo fluxo de login genérico já descrito no UC-01 do Aluno (não há casos de
    uso de login separados por perfil).
-7. Registro de auditoria das ações é um requisito válido do sistema (citado no diagrama do Admin, ausente em
-   `requisitos.md` e no domínio). O mecanismo (o que é logado, quem consulta) permanece em aberto — ver OPEN-13.
+7. Auditoria é implementada pela SPEC-020: ações críticas são registradas de forma transacional e a consulta é
+   exclusiva do Administrador.
 8. RNF-01 (resposta < 2s, P95) aplica-se a **todas** as operações do sistema.
 
-## Questões em aberto (OPEN)
+## Questões em aberto e decisões resolvidas
+
+As questões abaixo foram comparadas com os modelos, migrações e rotas atuais. “Encerrada” indica que a decisão
+está refletida no comportamento implementado; não implica ampliação do escopo atual.
 
 | ID | Decisão necessária |
 |---|---|
-| OPEN-01 | Mecanismo de aprovação de reservas: RF-05 a RF-08 sugerem que toda solicitação passa por análise; RB-03 sugere que só equipamento de uso controlado exige aprovação; README/personas sugerem reserva direta. |
+| OPEN-01 | **Encerrada:** toda solicitação de reserva de laboratório entra como `PENDENTE`; o Professor aprova ou recusa. O sistema não implementa reserva direta nem reserva individual de equipamento. |
 | OPEN-02 | Resolvido: estados da reserva são `PENDENTE`, `APROVADA`, `RECUSADA`, `EM_USO`, `CONCLUIDA`, `CANCELADA` e `NO_SHOW`. |
 | OPEN-03 | Resolvido: devolver e encerrar utilização são a mesma ação no MVP; a reserva passa para `CONCLUIDA`. |
-| OPEN-04 | Valor do limite de reservas futuras por aluno (RB-04); deve ser configurável. |
-| OPEN-05 | Prazo permitido para cancelamento de reserva (RB-05). |
+| OPEN-04 | **Em aberto:** não há limite configurável de quantidade de reservas futuras implementado. Não presumir nem documentar um número até decisão de produto. |
+| OPEN-05 | **Encerrada:** o titular pode cancelar uma reserva `PENDENTE` ou `APROVADA` até uma hora antes do início. |
 | OPEN-06 | Resolvido: check-in permitido de 15 minutos antes até 15 minutos depois do início da reserva. |
 | OPEN-07 | Resolvido: o Administrador consulta os relatos e pode marcar o status como `RESOLVIDO`; os únicos estados são `ABERTO` e `RESOLVIDO`. |
-| OPEN-08 | Se "remover" usuário (UC06 Admin) é exclusão definitiva ou desativação (usando `StatusUsuario.INATIVO`, já existente no domínio). |
-| OPEN-09 | Se a definição de senha inicial (no cadastro pelo Admin) e a recuperação de senha esquecida entram no escopo. |
-| OPEN-10 | O modelo de domínio não tem atributo de "uso controlado" em `Equipamento`, necessário para RB-03. |
-| OPEN-11 | Não há RF nem caso de uso definindo quem marca um equipamento como "Em manutenção". |
+| OPEN-08 | **Encerrada:** remover usuário significa inativar a conta (`ATIVO`/`INATIVO`); não há exclusão física pela API. |
+| OPEN-09 | **Encerrada:** o Administrador cria a conta com senha inicial; a recuperação assistida gera senha temporária e exige troca no próximo acesso (SPEC-022/023). |
+| OPEN-10 | **Encerrada por escopo:** não existe atributo de uso controlado nem reserva de equipamento independente; RB-03 não é aplicada pelo fluxo atual. |
+| OPEN-11 | **Encerrada por escopo:** equipamentos aceitam somente `ATIVO`/`INATIVO`; não há status nem fluxo de manutenção implementado. |
 | OPEN-12 | Resolvido na SPEC-016: três `NO_SHOW` em 30 dias suspendem o Aluno por 7 dias; a regra é reavaliada ao término da suspensão. |
-| OPEN-13 | Mecanismo do registro de auditoria: o que é logado, formato, quem consulta. |
-| OPEN-14 | Nenhum ADR, driver arquitetural ou decisão de stack (frontend/backend/banco/hospedagem) existe na baseline. |
-| OPEN-15 | Bootstrap do primeiro Administrador: cadastrar usuário exige estar autenticado como Admin (RF-02), mas não há definição de como o primeiro Admin é criado. |
+| OPEN-13 | **Encerrada:** SPEC-020 define campos, ações auditadas, consulta administrativa, filtros, paginação e limites de conteúdo sensível. |
+| OPEN-14 | **Encerrada:** decisões de stack e bibliotecas estão registradas em `docs/adrs.md`. |
+| OPEN-15 | **Encerrada com restrição:** `GET /setup` cria dados de desenvolvimento e pode remover usuários existentes em base descartável; não é fluxo de provisionamento de produção. |
+
+### Lacuna identificada na auditoria
+
+- **Trust Score numérico:** não foi encontrado no código. A SPEC-025 cobre contagem de `NO_SHOW`, faltas restantes e status da conta, mas não calcula ou armazena uma pontuação de confiança. O item não é marcado como concluído nem recebe endpoint, schema ou componente inexistentes.
+
+## Índice de cobertura
+
+Status conferido com as rotas, modelos e componentes atuais. O status CONCLUÍDO significa que o escopo descrito em cada SPEC está presente; não significa que as questões explicitamente mantidas em aberto foram implementadas.
+
+| SPEC | Funcionalidade | Status |
+|---|---|---|
+| 001 | Autenticação e controle de acesso | CONCLUÍDO |
+| 002 | Gestão de usuários | CONCLUÍDO |
+| 003 | Gestão de laboratórios | CONCLUÍDO |
+| 004 | Gestão de equipamentos | CONCLUÍDO |
+| 005 | Consulta de laboratórios e equipamentos | CONCLUÍDO |
+| 006 | Consulta de disponibilidade | CONCLUÍDO |
+| 007 | Solicitação e validação de reserva | CONCLUÍDO |
+| 008 | Aprovação e recusa de reservas | CONCLUÍDO |
+| 009 | Cancelamento de reserva | CONCLUÍDO |
+| 010 | Check-in e início de utilização | CONCLUÍDO |
+| 011 | Encerramento de utilização | CONCLUÍDO |
+| 012 | Histórico de reservas | CONCLUÍDO |
+| 013 | Relato e gestão de problemas | CONCLUÍDO |
+| 014 | Preferências de acessibilidade e carregamento | CONCLUÍDO |
+| 015 | Perfil, avatar e atividade | CONCLUÍDO |
+| 016 | Penalidade por `NO_SHOW` | CONCLUÍDO |
+| 017 | Dashboard administrativo | CONCLUÍDO |
+| 018 | Exportação de relatórios | CONCLUÍDO |
+| 019 | Notificações in-app | CONCLUÍDO |
+| 020 | Auditoria | CONCLUÍDO |
+| 021 | Polimento visual e navegação | CONCLUÍDO |
+| 022 | Perfil completo e troca de senha | CONCLUÍDO |
+| 023 | Cadastro e redefinição assistida de senha | CONCLUÍDO |
+| 024 | Bloqueio de datas passadas | CONCLUÍDO |
+| 025 | Transparência de faltas e status do aluno | CONCLUÍDO |
+| 026 | Atalho de check-in no dashboard do aluno | CONCLUÍDO |
+| 027 | Laboratórios favoritos | CONCLUÍDO |
+| 028 | Grade semanal de ocupação | CONCLUÍDO |
+| 029 | Reservas em grupo com co-reservantes | CONCLUÍDO |
 
 ## RNFs transversais
 
@@ -62,7 +107,7 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 | RNF-03 — Hash de senha | SPEC-001 |
 | RNF-04 — Usabilidade | Todas as Specs |
 | RNF-05 — Documentação OpenAPI/Swagger | Todas as Specs que exponham endpoints |
-| Auditoria das ações (derivado do diagrama do Admin) | Todas as Specs com ações de criação/alteração/exclusão — mecanismo em OPEN-13 |
+| Auditoria das ações | Ações cobertas pela SPEC-020; não presumir que toda mutação gera log. |
 
 ## Mapa de Specs
 
@@ -73,61 +118,61 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RB relacionadas:** —
 - **RNF aplicáveis:** RNF-02, RNF-03
 - **Caso de uso / fluxo:** UC-01 (Aluno), generalizado a Professor/Admin
-- **Entidades do modelo conceitual:** `Usuario`, `Aluno`, `Professor`, `Administrador`, `StatusUsuario`
-- **Drivers arquiteturais:** nenhum registrado (OPEN-14)
-- **ADRs:** nenhuma
+- **Entidades do modelo conceitual:** `Usuario` (perfil e status)
+- **Drivers arquiteturais:** FastAPI, SQLAlchemy e SQLite
+- **ADRs:** ADR 002, ADR 003 e ADR 005
 - **Dependências:** nenhuma
 - **Justificativa da posição:** pré-condição de todas as demais funcionalidades.
 
 ### SPEC-002 — Gestão de Usuários (Administrador)
-- **Objetivo:** permitir que o Admin cadastre, defina o perfil e remova/desative usuários.
+- **Objetivo:** permitir que o Administrador cadastre usuários, defina seus perfis e inative ou reative contas.
 - **Valor entregue:** base de contas necessária para qualquer outro fluxo funcionar com usuários reais.
-- **RF relacionados:** a criar (decisão tomada de formalizar RF)
-- **RB relacionadas:** RN05
+- **RF relacionados:** RF-02; gestão administrativa detalhada nesta SPEC
+- **RB relacionadas:** unicidade de e-mail e CPF quando informado; desativação lógica
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC05, UC06 (Admin)
-- **Entidades do modelo conceitual:** `Usuario`, `Aluno`, `Professor`, `Administrador`, `StatusUsuario`
+- **Caso de uso / fluxo:** UC-01 (Administrador)
+- **Entidades do modelo conceitual:** `Usuario` (perfil, dados cadastrais e status)
 - **Drivers arquiteturais:** nenhum registrado
-- **ADRs:** nenhuma
+- **ADRs:** ADR 003 e ADR 005
 - **Dependências:** SPEC-001
 - **Justificativa da posição:** depende de autenticação como Admin; é pré-requisito para existirem contas de Aluno/Professor usadas nas demais Specs.
-- **Open relacionado:** OPEN-08, OPEN-09, OPEN-15
+- **Decisões registradas:** OPEN-08, OPEN-09 e OPEN-15
 
 ### SPEC-003 — Gestão de Laboratórios (Administrador)
-- **Objetivo:** permitir que o Admin cadastre, ative e desative laboratórios.
+- **Objetivo:** permitir que o Administrador cadastre e altere o status dos laboratórios.
 - **Valor entregue:** recurso reservável passa a existir no sistema.
-- **RF relacionados:** a criar
-- **RB relacionadas:** RN03, RN07
+- **RF relacionados:** RF-02
+- **RB relacionadas:** cadastro único e preservação de vínculos; gerenciamento por status
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC01, UC02 (Admin)
-- **Entidades do modelo conceitual:** `Laboratorio`, `StatusLaboratorio`
+- **Caso de uso / fluxo:** UC-03 (Administrador)
+- **Entidades do modelo conceitual:** `Laboratorio` e seu campo `status`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-001
 - **Justificativa da posição:** dado-mestre necessário antes de qualquer consulta ou reserva de laboratório.
 
 ### SPEC-004 — Gestão de Equipamentos (Administrador)
-- **Objetivo:** permitir que o Admin cadastre e remova equipamentos vinculados a um laboratório.
-- **Valor entregue:** equipamentos tornam-se disponíveis para consulta/reserva.
-- **RF relacionados:** a criar
-- **RB relacionadas:** RN04, RN07
+- **Objetivo:** permitir que o Administrador cadastre equipamentos vinculados a um laboratório e altere seu status.
+- **Valor entregue:** equipamentos associados aos laboratórios tornam-se disponíveis para consulta.
+- **RF relacionados:** RF-02, RF-03
+- **RB relacionadas:** cada equipamento deve estar associado a um laboratório
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC03, UC04 (Admin)
-- **Entidades do modelo conceitual:** `Equipamento`, `StatusEquipamento`, `Laboratorio`
+- **Caso de uso / fluxo:** UC-03 (Administrador)
+- **Entidades do modelo conceitual:** `Equipamento`, `Laboratorio` e seus campos `status`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
-- **Dependências:** SPEC-003 (equipamento precisa de um laboratório existente, RN04)
+- **Dependências:** SPEC-003 (equipamento precisa de um laboratório existente)
 - **Justificativa da posição:** depende de já existir laboratório cadastrado.
-- **Open relacionado:** OPEN-10, OPEN-11
+- **Decisão de escopo:** equipamento é recurso associado ao laboratório; reserva individual e status de manutenção não existem no código atual.
 
 ### SPEC-005 — Consulta de Laboratórios e Equipamentos
 - **Objetivo:** permitir que Aluno e Professor consultem os recursos cadastrados e sua situação.
-- **Valor entregue:** transparência de recursos disponíveis (dor citada nas personas de Lucas e Mariana).
+- **Valor entregue:** transparência dos laboratórios e equipamentos cadastrados.
 - **RF relacionados:** RF-03
-- **RB relacionadas:** RB-02 (exibição de status)
+- **RB relacionadas:** — (`ATIVO`/`INATIVO` descritos no contrato da SPEC)
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-02, UC-03 (Aluno); UC01 (Professor)
-- **Entidades do modelo conceitual:** `Laboratorio`, `Equipamento`, `StatusLaboratorio`, `StatusEquipamento`
+- **Caso de uso / fluxo:** UC-02 (Aluno); UC-01 (Professor)
+- **Entidades do modelo conceitual:** `Laboratorio` e `Equipamento`, com status `ATIVO`/`INATIVO`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-004
@@ -137,42 +182,42 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **Objetivo:** apresentar horários disponíveis e ocupados de um recurso em um período.
 - **Valor entregue:** base para decidir quando reservar, sem depender de terceiros.
 - **RF relacionados:** RF-04
-- **RB relacionadas:** RB-01, RB-02
+- **RB relacionadas:** RB-01
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-04 (Aluno); UC02 (Professor)
-- **Entidades do modelo conceitual:** `Reserva` (leitura), `Laboratorio`, `Equipamento`
+- **Caso de uso / fluxo:** UC-03 (Aluno); UC-01 (Professor)
+- **Entidades do modelo conceitual:** `Reserva` (leitura), `Laboratorio`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-005
 - **Justificativa da posição:** depende da consulta de recursos e precisa existir antes da solicitação de reserva, que reutiliza essa verificação.
 
 ### SPEC-007 — Solicitação e Validação de Reserva
-- **Objetivo:** permitir que um usuário autenticado (Aluno ou Professor) solicite a reserva de um laboratório ou equipamento.
+- **Objetivo:** permitir que um usuário autenticado (Aluno ou Professor) solicite a reserva de um laboratório.
 - **Valor entregue:** autonomia para reservar sem depender de processos informais (dor central da persona Lucas).
 - **RF relacionados:** RF-05, RF-06
-- **RB relacionadas:** RB-01, RB-02, RB-03, RB-04
+- **RB relacionadas:** RB-01 e RB-04 (OPEN-04)
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-05 (Aluno), generalizado a Professor
-- **Entidades do modelo conceitual:** `Reserva`, `ReservaEquipamento` (requer ajuste de modelo — ver OPEN-10)
+- **Caso de uso / fluxo:** UC-04 (Aluno); UC-02 (Professor)
+- **Entidades do modelo conceitual:** `Reserva`, `Laboratorio`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-006
 - **Justificativa da posição:** depende da consulta de disponibilidade para checar conflitos antes de registrar a solicitação.
-- **Open relacionado:** OPEN-01, OPEN-04, OPEN-10
+- **Open relacionado:** OPEN-04 (limite de reservas futuras não implementado)
 
 ### SPEC-008 — Análise, Aprovação e Recusa de Solicitações de Reserva
-- **Objetivo:** permitir que o Professor analise, aprove ou recuse solicitações de reserva feitas por Alunos.
+- **Objetivo:** permitir que o Professor analise, aprove ou recuse solicitações de reserva feitas por Alunos ou Professores.
 - **Valor entregue:** controle e organização do uso dos recursos (dor central da persona Mariana).
 - **RF relacionados:** RF-07, RF-08
-- **RB relacionadas:** RB-01, RB-02, RB-03
+- **RB relacionadas:** RB-01
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC03, UC04, UC05 (Professor)
+- **Caso de uso / fluxo:** UC-03 (Professor)
 - **Entidades do modelo conceitual:** `Reserva`, `StatusReserva`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-007
 - **Justificativa da posição:** opera sobre solicitações já registradas pela Spec anterior.
-- **Open relacionado:** OPEN-01, OPEN-02
+- **Decisões registradas:** OPEN-01 e OPEN-02
 
 ### SPEC-012 — Histórico de Reservas
 - **Objetivo:** permitir que o usuário consulte suas reservas passadas e atuais com status.
@@ -180,7 +225,7 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RF relacionados:** RF-10
 - **RB relacionadas:** —
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-06 (Aluno)
+- **Caso de uso / fluxo:** UC-05 (Aluno)
 - **Entidades do modelo conceitual:** `Reserva`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
@@ -193,13 +238,13 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RF relacionados:** —
 - **RB relacionadas:** RB-05
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-07 (Aluno), generalizado a Professor
+- **Caso de uso / fluxo:** UC-05 (Aluno); UC-04 (Professor)
 - **Entidades do modelo conceitual:** `Reserva`, `StatusReserva`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-007, SPEC-012
 - **Justificativa da posição:** opera sobre reservas já existentes e integra a ação à interface do histórico.
-- **Open relacionado:** OPEN-05, OPEN-02
+- **Decisões registradas:** OPEN-05 e OPEN-02
 
 ### SPEC-010 — Check-in e Início de Utilização
 - **Objetivo:** registrar o início da utilização de um recurso reservado.
@@ -207,13 +252,13 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RF relacionados:** RF-09 (parte 1)
 - **RB relacionadas:** RB-06, RB-07
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-08 (Aluno), generalizado a Professor
+- **Caso de uso / fluxo:** UC-06 (Aluno); UC-05 (Professor)
 - **Entidades do modelo conceitual:** `Reserva`, `StatusReserva`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-008 (exige reserva aprovada)
 - **Justificativa da posição:** só faz sentido após a aprovação da reserva.
-- **Open relacionado:** OPEN-02
+- **Decisão registrada:** OPEN-02
 - **Regra definida:** check-in permitido de 15 minutos antes até 15 minutos depois do início; após essa janela, a reserva passa automaticamente a `NO_SHOW`.
 
 ### SPEC-011 — Encerramento de Utilização / Devolução
@@ -222,13 +267,13 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RF relacionados:** RF-09 (parte 2)
 - **RB relacionadas:** —
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-09 (Aluno), generalizado a Professor
+- **Caso de uso / fluxo:** UC-06 (Aluno); UC-05 (Professor)
 - **Entidades do modelo conceitual:** `Reserva`, `StatusReserva`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-010
 - **Justificativa da posição:** encerra o ciclo iniciado pelo check-in.
-- **Open relacionado:** OPEN-02
+- **Decisão registrada:** OPEN-02
 
 ### SPEC-013 — Relato de Problemas
 - **Objetivo:** permitir que o usuário reporte problemas em laboratórios ou equipamentos.
@@ -236,13 +281,13 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RF relacionados:** RF-02, RF-03
 - **RB relacionadas:** —
 - **RNF aplicáveis:** —
-- **Caso de uso / fluxo:** UC-10 (Aluno), generalizado a Professor
+- **Caso de uso / fluxo:** UC-07 (Aluno); UC-06 (Professor)
 - **Entidades do modelo conceitual:** `RelatoProblema`, `StatusProblema`, `Laboratorio`, `Equipamento`
 - **Drivers arquiteturais:** nenhum registrado
 - **ADRs:** nenhuma
 - **Dependências:** SPEC-005
 - **Justificativa da posição:** depende apenas de poder referenciar um laboratório/equipamento já consultável; independente do fluxo de reservas.
-- **Open relacionado:** OPEN-07
+- **Decisão registrada:** OPEN-07
 
 ### SPEC-014 — Preferências de Acessibilidade e Indicadores de Carregamento
 - **Objetivo:** permitir que todos os perfis configurem modo escuro e alto contraste, com preferências persistidas no navegador, e recebam feedback uniforme em operações assíncronas.
@@ -258,7 +303,7 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **Justificativa da posição:** estabelece padrões visuais e de interação reutilizados pelas próximas etapas V2.0.
 
 ### SPEC-015 — Perfil, Avatar e Última Atividade
-- **Objetivo:** permitir que cada usuário edite seu nome e e-mail, envie uma foto de perfil e consulte o registro de sua última atividade.
+- **Objetivo:** permitir que cada usuário atualize seus dados pessoais permitidos, envie uma foto de perfil e consulte sua última atividade; o e-mail é somente leitura.
 - **Valor entregue:** dados pessoais atualizados, identificação visual e rastreabilidade de acesso.
 - **RF relacionados:** novos requisitos V2.0 definidos em `spec-015.md`
 - **RB relacionadas:** alteração restrita ao usuário autenticado; endereço de e-mail permanece único.
@@ -367,7 +412,7 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RF relacionados:** fluxos V2.1 descritos em `spec-023.md`
 - **RB relacionadas:** CPF validado e único; RG normalizado; reset genérico e deduplicado; troca obrigatória da senha temporária.
 - **RNF aplicáveis:** RNF-02, RNF-03, RNF-05
-- **Caso de uso / fluxo:** Cadastro; solicitar reset; Administrador atende; titular troca senha.
+- **Caso de uso / fluxo:** UC-02 (Administrador); cadastro, solicitação de redefinição e troca pelo titular.
 - **Entidades do modelo conceitual:** `Usuario`, `NotificacaoConta`.
 - **Drivers arquiteturais:** FastAPI, SQLite e hash bcrypt existentes.
 - **ADRs:** nenhuma dependência nova.
@@ -381,15 +426,71 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **RB relacionadas:** data inicial deve ser futura; data final não pode anteceder o início.
 - **RNF aplicáveis:** RNF-04, RNF-05
 - **Caso de uso / fluxo:** Solicitar reserva.
-- **Entidades do modelo conceitual:** `Reserva.inicio`.
+- **Entidades do modelo conceitual:** `Reserva.data_inicio`.
 - **Drivers arquiteturais:** controles HTML e validação FastAPI existentes.
 - **ADRs:** nenhuma dependência nova.
 - **Dependências:** SPEC-007.
 - **Justificativa da posição:** é uma validação isolada que completa os fluxos da V2.1.
 
+### SPEC-025 — Transparência de faltas e status da conta do aluno
+- **Status:** CONCLUÍDO.
+- **Objetivo:** exibir a contagem de no-shows do aluno na janela móvel de 30 dias e a proximidade do limite de suspensão.
+- **Valor entregue:** previsibilidade sobre a situação da conta sem alterar a regra de penalidade.
+- **RF relacionados:** painel do aluno.
+- **RB relacionadas:** SPEC-016 permanece a fonte do limite de três faltas e suspensão por sete dias.
+- **RNF aplicáveis:** RNF-02, RNF-04, RNF-05.
+- **Entidades do modelo conceitual:** `Usuario`, `Reserva.data_no_show`.
+- **API:** `GET /api/dashboard/aluno/resumo`.
+- **Contrato:** `DashboardAlunoResponse`; componente `DashboardAluno.jsx`.
+- **Dependências:** SPEC-001 e SPEC-016.
+
+### SPEC-026 — Atalho de check-in no Dashboard do Aluno
+- **Status:** CONCLUÍDO.
+- **Objetivo:** permitir abrir o check-in de uma reserva aprovada próxima do início diretamente pelo Dashboard.
+- **Valor entregue:** menos etapas para confirmar presença dentro da janela existente.
+- **RB relacionadas:** mantém a janela e titularidade da SPEC-010.
+- **RNF aplicáveis:** RNF-02, RNF-04, RNF-05.
+- **Entidades do modelo conceitual:** `Reserva`, `Laboratorio`.
+- **API:** resumo do aluno e `PATCH /api/reservas/{id}/checkin`.
+- **Contrato:** `DashboardAlunoResponse` e `ReservaCheckinProximoResponse`; componente `DashboardAluno.jsx`.
+- **Dependências:** SPEC-010 e SPEC-025.
+
+### SPEC-027 — Laboratórios favoritos
+- **Status:** CONCLUÍDO.
+- **Objetivo:** permitir ao aluno salvar laboratórios e iniciar rapidamente uma solicitação.
+- **Valor entregue:** acesso direto aos recursos preferidos sem ignorar as validações da reserva.
+- **RB relacionadas:** o atalho abre o formulário; período e finalidade continuam obrigatórios.
+- **RNF aplicáveis:** RNF-02, RNF-04, RNF-05.
+- **Entidades do modelo conceitual:** `FavoritoUsuario`, `Usuario`, `Laboratorio`.
+- **API:** `GET /api/favoritos`; `PUT/DELETE /api/favoritos/{laboratorio_id}`.
+- **Contrato:** `FavoritoResponse`; componentes `ConsultaRecursos.jsx` e `DashboardAluno.jsx`.
+- **Dependências:** SPEC-001, SPEC-005 e SPEC-007.
+
+### SPEC-028 — Grade semanal de ocupação do laboratório
+- **Status:** CONCLUÍDO.
+- **Objetivo:** mostrar períodos livres e ocupados em sete dias para apoiar a escolha do horário.
+- **Valor entregue:** mais transparência antes de abrir o formulário de reserva.
+- **RB relacionadas:** reaproveita SPEC-006; não presume turmas nem horários de funcionamento.
+- **RNF aplicáveis:** RNF-02, RNF-04, RNF-05.
+- **Entidades do modelo conceitual:** `Laboratorio`, `Reserva`.
+- **API:** `GET /api/reservas/grade-semanal`.
+- **Contrato:** `DisponibilidadeResponse` e `BlocoDisponibilidade`; componentes `GradeSemanal.jsx` e `ConsultaRecursos.jsx`.
+- **Dependências:** SPEC-005 e SPEC-006.
+
+### SPEC-029 — Reservas em grupo com co-reservantes
+- **Status:** CONCLUÍDO.
+- **Objetivo:** associar alunos a uma reserva e disponibilizá-la no histórico e notificações de cada participante.
+- **Valor entregue:** acompanhamento compartilhado sem criar reservas duplicadas.
+- **RB relacionadas:** titular mantém permissões de alteração e recebe a penalidade por no-show; participantes têm acesso de leitura e recebem alertas.
+- **RNF aplicáveis:** RNF-02, RNF-04, RNF-05; isolamento de dados da SPEC-012.
+- **Entidades do modelo conceitual:** `ReservaCoReservante`, `NotificacaoGrupo`, `Usuario`, `Reserva`.
+- **API:** busca de alunos, solicitação de reserva com `co_reservante_ids`, histórico e notificações.
+- **Contratos:** `AlunoResumoResponse`, `ReservaCriar`, `ReservaHistoricoResponse`, `CoReservanteResponse` e `NotificacaoResponse`; componentes `SolicitarReserva.jsx`, `HistoricoReservas.jsx` e `SininhoNotificacoes.jsx`.
+- **Dependências:** SPEC-001, SPEC-007, SPEC-010, SPEC-012 e SPEC-019.
+
 ---
 
 ## Próximos passos
 
-1. Detalhar e implementar as próximas Specs da V2.0 na ordem de dependência aprovada no Plano Mestre.
-2. Resolver as questões abertas relacionadas a cada etapa antes de alterar suas regras de negócio.
+1. Manter o mapa sincronizado com mudanças futuras em rotas, modelos, migrações e interface.
+2. Decidir o limite de reservas futuras por aluno (OPEN-04) antes de alterar ou documentar essa regra como implementada.

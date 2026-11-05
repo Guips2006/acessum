@@ -1,7 +1,7 @@
 # SPEC-019: Notificações In-App
 
-**Status:** Concluída  
-**Objetivo:** Informar o Aluno sobre decisões de reservas e proximidade do check-in.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Informar o Aluno sobre decisões de reservas e proximidade do check-in.<br>
 **Atores:** Aluno e sistema.
 
 ## 1. Eventos e regras
@@ -32,3 +32,9 @@
 - O job cria um único lembrete na janela de 30 minutos e não duplica ao rodar novamente.
 - Usuário não lê nem marca notificações de outra conta; leitura individual e em lote atualizam a contagem.
 - Reaplicar a migração não apaga notificações nem recria duplicatas.
+
+**Contratos e interface:** `GET /api/notificacoes` retorna `ListaNotificacoesResponse`, com itens `NotificacaoResponse`; leitura individual retorna `NotificacaoResponse` e leitura em lote `NotificacoesLidasResponse`. Interface em `SininhoNotificacoes.jsx`.
+
+## 5. Extensão — SPEC-029
+
+Notificações para co-reservantes ficam em uma tabela aditiva com unicidade por reserva, usuário e tipo. A API consolida essas mensagens com as notificações existentes e continua retornando somente mensagens do usuário autenticado.

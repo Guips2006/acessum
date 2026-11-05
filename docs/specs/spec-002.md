@@ -1,20 +1,22 @@
 # SPEC-002: Gestão de Usuários
 
-**Status:** Concluído
-**Objetivo:** Permitir que o Administrador consulte, cadastre e altere o status de acesso de utilizadores no sistema Acessum.
+**Status:** CONCLUÍDO
+**Objetivo:** Permitir que o Administrador consulte, cadastre e altere o status de acesso dos usuários no Acessum.
 **Atores:** Administrador (Exclusivo)
 
 ## 1. Regras de Negócio e Segurança
-* **Controlo de Acesso (RBAC):** Apenas o perfil `ADMINISTRADOR` tem autorização para aceder aos endpoints de escrita e leitura e à interface de gestão.
+* **Controle de acesso (RBAC):** somente o perfil `ADMINISTRADOR` pode acessar os endpoints e a interface de gestão.
 * **Autenticação:** O sistema utiliza `HTTPBearer` (Token JWT via JSON), sem dependência de formulários padrão OAuth2.
-* **Soft Delete:** A exclusão de utilizadores é lógica. O status transita entre `ATIVO` e `INATIVO` para preservar a integridade do histórico do banco de dados.
+* **Exclusão lógica:** a desativação alterna entre `ATIVO` e `INATIVO`, preservando o histórico. Novos cadastros exigem nome, e-mail, CPF, RG, data de nascimento e senha; CPF é único quando informado.
 
 ## 2. Especificação da API (`/api/usuarios/`)
-* `GET /`: Lista todos os utilizadores (Protegido: Admin).
-* `POST /`: Cria um novo utilizador exigindo Nome, Email, Senha e Perfil (ALUNO, PROFESSOR, ADMINISTRADOR) (Protegido: Admin).
-* `PATCH /{id}/status`: Alterna o status do utilizador (ATIVO ↔ INATIVO) (Protegido: Admin).
+* `GET /`: lista todos os usuários (protegido: Administrador).
+* `POST /`: cria usuário por meio do contrato `UsuarioCriar` e retorna `UsuarioResponse` (somente Administrador).
+* `PATCH /{usuario_id}/status`: alterna o status para `ATIVO` ou `INATIVO` e retorna `UsuarioStatusResponse` (somente Administrador).
 
 ## 3. Especificação de Interface (React)
-* **Componente:** `GestaoUsuarios.jsx`
+* **Componente:** `GestaoUsuarios.jsx`, integrado em `App.jsx`.
 * **Formulário:** Captura de dados para criação de novos acessos.
 * **Tabela:** Renderização condicional de cores baseada no status (Verde = ATIVO, Vermelho = INATIVO).
+
+**Contratos:** `UsuarioCriar`, `UsuarioResponse` e `UsuarioStatusResponse`, definidos em `backend/schemas.py`.

@@ -1,6 +1,6 @@
 # SPEC-023: Cadastro Seguro e Redefinição de Senha
 
-**Status:** Concluída  
+**Status:** CONCLUÍDO<br>
 **Objetivo:** Exigir dados de identidade em novos cadastros e permitir recuperação assistida de senha.
 
 ## Regras
@@ -19,3 +19,9 @@
 - CPF com dígitos inválidos, RG fora do tamanho e datas futuras são rejeitados.
 - E-mail existente e inexistente têm resposta indistinguível no reset.
 - Confirmar deduplicação, autorização Admin, senha temporária não persistida em texto e bloqueio de rotas até a troca.
+
+## API, contratos e interface
+
+- `POST /api/auth/esqueci-senha` recebe `EsqueciSenhaRequest` e sempre responde com `MensagemGenericaResponse`.
+- `GET /api/notificacoes-conta` lista solicitações pendentes do Administrador autenticado; `POST /api/notificacoes-conta/{notificacao_id}/redefinir` emite uma senha temporária e responde com `ResetSenhaResponse`.
+- Cadastro administrativo usa `UsuarioCriar` e retorna `UsuarioResponse`. Componentes: `App.jsx`, `GestaoUsuarios.jsx`, `SininhoNotificacoes.jsx` e `MeuPerfil.jsx`.

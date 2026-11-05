@@ -1,7 +1,7 @@
 # SPEC-017: Dashboard Administrativo
 
-**Status:** Concluída  
-**Objetivo:** Apresentar indicadores de reservas e ocupação para o Administrador.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Apresentar indicadores de reservas e ocupação para o Administrador.<br>
 **Atores:** Administrador.
 
 ## 1. Regras e métricas
@@ -24,3 +24,5 @@
 
 - Um índice aditivo em `reservas(status, data_inicio)` apoia a consulta por status/período; a migração usa `CREATE INDEX IF NOT EXISTS`.
 - Validar autorização para Administrador e rejeição para outros perfis, fuso e intervalo inválidos, limite de 366 dias, união sem dupla contagem, exclusão de laboratórios inativos e série de `NO_SHOW`.
+
+**Contrato e interface:** resposta `DashboardReservasResponse`, composta por `ReservaPorStatus` e `NoShowPorDia`; componente `DashboardAdmin.jsx`.

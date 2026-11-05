@@ -1,12 +1,12 @@
 # SPEC-005: Consulta de Laboratórios e Equipamentos
 
-**Status:** Concluído
-**Objetivo:** Permitir aos utilizadores finais a consulta transparente dos recursos cadastrados e suas situações operacionais.
-**Atores:** Aluno, Professor (Administrador não acessa esta view).
+**Status:** CONCLUÍDO
+**Objetivo:** Permitir que alunos e professores consultem os recursos cadastrados e seus status.
+**Atores:** Aluno e Professor.
 
 ## 1. Regras de Negócio e Acesso
-* **Transparência (RF-03):** Listagem de laboratórios com os seus respectivos equipamentos e status (RB-02).
-* **Controlo de Acesso:** Funcionalidade restrita aos perfis `ALUNO` e `PROFESSOR`. A validação é feita diretamente no frontend (`App.jsx`) e as rotas GET no backend exigem apenas token válido (qualquer perfil logado).
+* **Transparência (RF-03):** listagem de laboratórios com equipamentos associados e respectivos status.
+* **Controle de acesso:** a navegação de consulta é oferecida a `ALUNO` e `PROFESSOR`; os endpoints de leitura exigem autenticação válida. A API continua sendo responsável por autorizar cada operação.
 
 ## 2. Detalhes de Integração
 * **Processamento de Dados:** O backend utiliza a propriedade `relationship` do SQLAlchemy para entregar equipamentos aninhados em cada laboratório; o frontend não realiza o cruzamento dos dados.
@@ -14,4 +14,6 @@
 
 ## 3. Especificação de Interface (React)
 * **Componente:** `ConsultaRecursos.jsx`
-* **Layout:** Renderização em lista (Cards/Blocos) por laboratório, contendo uma sub-lista dos equipamentos vinculados e as respetivas cores de status.
+* **Layout:** cartões de laboratório com lista de equipamentos vinculados e seus status.
+
+**Contratos:** `GET /api/laboratorios/` retorna `LaboratorioResponse` com equipamentos `EquipamentoResponse`; `GET /api/equipamentos/` retorna `EquipamentoResponse`. Componentes: `ConsultaRecursos.jsx` e `ConsultaDisponibilidade.jsx`.

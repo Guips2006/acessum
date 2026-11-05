@@ -1,6 +1,6 @@
 # SPEC-021: Polimento Visual e Navegação
 
-**Status:** Concluída  
+**Status:** CONCLUÍDO<br>
 **Objetivo:** Harmonizar a interface e concentrar as ações da conta em um menu de usuário.
 
 ## Requisitos
@@ -17,3 +17,7 @@
 
 - Testar header e menus em modo claro, escuro e alto contraste, em desktop e viewport móvel.
 - Confirmar navegação por teclado, foco visível, labels acessíveis e loading sem texto visual.
+
+## Implementação
+
+Esta SPEC não introduz endpoints nem contratos de API. Os componentes centrais são `App.jsx`, `Configuracoes.jsx`, `MeuPerfil.jsx` e `SininhoNotificacoes.jsx`; estilos, foco e comportamento responsivo ficam em `styles.css`. Ícones usam `lucide-react`.

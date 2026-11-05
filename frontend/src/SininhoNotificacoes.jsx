@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -11,6 +11,8 @@ export default function SininhoNotificacoes() {
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const centroNotificacoesRef = useRef(null);
+  const acionadorNotificacoesRef = useRef(null);
 
   useEffect(() => {
     let ativo = true;
@@ -35,6 +37,31 @@ export default function SininhoNotificacoes() {
       window.clearInterval(intervalo);
     };
   }, [api]);
+
+  useEffect(() => {
+    if (!aberto) return undefined;
+
+    const fecharAoClicarFora = (evento) => {
+      if (centroNotificacoesRef.current && !centroNotificacoesRef.current.contains(evento.target)) {
+        setAberto(false);
+      }
+    };
+
+    const fecharComEscape = (evento) => {
+      if (evento.key === 'Escape') {
+        setAberto(false);
+        acionadorNotificacoesRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', fecharAoClicarFora);
+    document.addEventListener('keydown', fecharComEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', fecharAoClicarFora);
+      document.removeEventListener('keydown', fecharComEscape);
+    };
+  }, [aberto]);
 
   const marcarComoLida = async (notificacao) => {
     if (notificacao.lida) return;
@@ -61,9 +88,10 @@ export default function SininhoNotificacoes() {
   };
 
   return (
-    <div className="notification-center">
+    <div className="notification-center" ref={centroNotificacoesRef}>
       <button
         type="button"
+        ref={acionadorNotificacoesRef}
         className="notification-bell"
         onClick={() => setAberto(atual => !atual)}
         aria-label={`Notificações${naoLidas ? `, ${naoLidas} não lidas` : ''}`}

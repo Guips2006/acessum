@@ -14,10 +14,10 @@
 
 <b>Objetivo:</b> O sistema é uma aplicação web desenvolvida para centralizar
 e facilitar o gerenciamento de laboratórios e equipamentos acadêmicos.
-A solução permite que alunos consultem a disponibilidade dos recursos e
-solicitem reservas, enquanto professores, técnicos e administradores podem
-analisar solicitações, controlar a utilização dos recursos e gerenciar sua
-disponibilidade.
+A solução permite que Alunos e Professores consultem laboratórios e
+disponibilidade, solicitem reservas de laboratórios e acompanhem sua
+utilização. Professores analisam as solicitações pendentes; Administradores
+gerenciam usuários, cadastros, relatórios e configurações administrativas.
 
 </p>
 

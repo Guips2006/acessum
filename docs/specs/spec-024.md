@@ -1,6 +1,6 @@
 # SPEC-024: Bloqueio de Datas Passadas
 
-**Status:** Concluída  
+**Status:** CONCLUÍDO<br>
 **Objetivo:** Impedir reservas com início no passado.
 
 ## Regras
@@ -13,3 +13,5 @@
 
 - Verificar os atributos `min` e sua atualização ao escolher o início.
 - Confirmar `422` para início passado e sucesso para período futuro válido.
+
+**Contrato e interface:** a requisição é `ReservaCriar` em `POST /api/reservas/`; a validação do servidor é autoritativa. O formulário `SolicitarReserva.jsx` aplica limites de data aos campos e apresenta os erros retornados pela API.

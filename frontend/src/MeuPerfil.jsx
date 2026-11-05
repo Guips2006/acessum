@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Camera, LockKeyhole, Upload } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { formatarPerfil } from './utils/formatarStatus';
 
 const TAMANHO_MAXIMO_AVATAR = 5 * 1024 * 1024;
 const TIPOS_AVATAR = ['image/jpeg', 'image/png'];
@@ -244,7 +245,7 @@ export default function MeuPerfil({ voltar }) {
         </label>
         <div className="profile-readonly-field">
           <span>Perfil</span>
-          <strong>{user.perfil}</strong>
+          <strong>{formatarPerfil(user.perfil)}</strong>
         </div>
         <p className="profile-activity">
           <strong>Última atividade:</strong> {ultimaAtividade}

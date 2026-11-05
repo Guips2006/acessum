@@ -1,6 +1,6 @@
 # SPEC-022: Perfil Completo e Troca de Senha
 
-**Status:** Concluída  
+**Status:** CONCLUÍDO<br>
 **Objetivo:** Completar o perfil pessoal e permitir troca segura da senha.
 
 ## Requisitos
@@ -19,3 +19,5 @@
 ## Validação
 
 - Confirmar e-mail imutável no cliente e API, perfil de titularidade, senha atual incorreta, divergência de confirmação e desbloqueio após troca.
+
+**Contratos e interface:** `POST /api/auth/alterar-senha` recebe `AlterarSenha`; `PATCH /api/perfil/me` recebe multipart e retorna `PerfilUsuarioResponse`. Interface em `MeuPerfil.jsx`, com bloqueio de troca obrigatória conduzido por `App.jsx`.

@@ -16,17 +16,17 @@
 
 **Lucas Almeida, 21 anos**
 
-Lucas é estudante de Engenharia e utiliza os laboratórios para aulas práticas, trabalhos acadêmicos e projetos. Precisa consultar horários e reservar um laboratório rapidamente, sem depender diretamente de professores ou da administração.
+Lucas é estudante de Engenharia e utiliza os laboratórios para aulas práticas, trabalhos acadêmicos e projetos. Precisa consultar horários, solicitar reservas e acompanhar o status dos pedidos.
 
 ### 🎯 Objetivo
 
-> Garantir um horário vago em bancada equipada para testar seus protótipos de hardware antes do prazo de entrega.
+> Encontrar um laboratório disponível e solicitar uma reserva para realizar seus projetos acadêmicos.
 
 ### 😣 Dores
 
-* 🔴 Chegar no laboratório e descobrir que o local está trancado ou ocupado.
-* 🔴 Perder horas de testes descobrindo na hora que um equipamento-chave está quebrado.
-* 🔴 Falta de transparência aos alunos em relação a quais horários estão disponíveis.
+* 🔴 Não saber se o laboratório estará disponível no horário desejado.
+* 🔴 Depender de contatos informais para solicitar uma reserva.
+* 🔴 Ter dificuldade para acompanhar a análise e o status de uma solicitação.
 
 ### 🔄 Comportamento atual
 
@@ -45,10 +45,9 @@ Lucas é estudante de Engenharia e utiliza os laboratórios para aulas práticas
 
 * Consultar a disponibilidade rapidamente.
 * Realizar uma reserva sem depender de terceiros.
-* Encontrar o laboratório e os equipamentos funcionando no horário agendado.
-* Visualizar suas reservas de forma clara.
-* Conseguir devolver o laboratório corretamente.
-* Reportar problemas de maneira simples e rápida.
+* Acompanhar suas reservas e os respectivos status.
+* Realizar check-in e encerrar a utilização no sistema.
+* Reportar problemas relacionados ao laboratório utilizado.
 
 ---
 
@@ -62,26 +61,25 @@ Lucas é estudante de Engenharia e utiliza os laboratórios para aulas práticas
 
 **Mariana Costa, 52 anos**
 
-Mariana é professora responsável por disciplinas práticas. Utiliza regularmente os laboratórios para ministrar aulas e desenvolver atividades acadêmicas. Também precisa reservar equipamentos específicos para suas atividades.
+Mariana é professora responsável por disciplinas práticas. Utiliza regularmente os laboratórios para ministrar aulas, solicitar reservas para suas atividades e analisar solicitações pendentes dos alunos.
 
 ### 🎯 Objetivo
 
-> Organizar o uso do espaço físico e dos kits de desenvolvimento para suas turmas, mantendo o controle sobre a conservação do patrimônio da faculdade.
+> Organizar o uso dos laboratórios, evitando conflitos e analisando as solicitações de reserva dos alunos.
 
 ### 😣 Dores
 
 * 🔴 Conflitos entre reservas de laboratórios.
 * 🔴 Dificuldade para saber quais laboratórios estão disponíveis.
-* 🔴 Falta de informações sobre a disponibilidade dos equipamentos.
-* 🔴 Necessidade de entrar em contato com a administração para resolver problemas.
-* 🔴 Falta de centralização das informações sobre laboratórios e equipamentos.
+* 🔴 Dificuldade para acompanhar solicitações de reserva pendentes.
+* 🔴 Falta de centralização das informações sobre o uso e os problemas reportados.
 
 ### 🔄 Comportamento atual
 
 * Verifica a disponibilidade dos laboratórios antes de planejar as aulas.
 * Utiliza sistemas ou contatos internos para realizar reservas.
-* Comunica-se com a administração quando encontra problemas.
-* Precisa confirmar manualmente a disponibilidade de equipamentos.
+* Analisa, aprova ou recusa solicitações de reserva.
+* Realiza reservas, check-in, encerramento de utilização e relatos de problemas.
 * Planeja previamente as atividades que serão realizadas nos laboratórios.
 
 ### ⚠️ Restrições
@@ -92,10 +90,8 @@ Pouco tempo hábil no dia a dia para gerenciar burocracias manuais de chaves ou 
 
 * Conseguir reservar um laboratório em poucos passos.
 * Consultar rapidamente a disponibilidade dos laboratórios.
-* Reservar os equipamentos necessários para suas atividades.
 * Evitar conflitos entre reservas.
-* Conseguir reportar problemas de maneira rápida.
-* Ter informações centralizadas sobre laboratórios e equipamentos.
+* Acompanhar os relatos de problemas relacionados aos laboratórios.
 
 ---
 
@@ -103,11 +99,11 @@ Pouco tempo hábil no dia a dia para gerenciar burocracias manuais de chaves ou 
 
 | Característica            | 👨‍🎓 Lucas — Aluno        | 👩‍🏫 Mariana — Professora            |
 | ------------------------- | -------------------------- | ------------------------------------- |
-| **Principal necessidade** | Reservar laboratórios      | Organizar laboratórios e equipamentos |
+| **Principal necessidade** | Solicitar reserva de laboratório | Gerenciar solicitações e uso dos laboratórios |
 | Consulta disponibilidade  | ✅ Sim                      | ✅ Sim                                 |
 | Reserva laboratório       | ✅ Sim                      | ✅ Sim                                 |
 | Devolve laboratório       | ✅ Sim                      | ✅ Sim                                 |
-| Reserva equipamentos      | ❌ Não                      | ✅ Sim                                 |
+| Reserva equipamentos      | ❌ Não                      | ❌ Não                                 |
 | Reporta problemas         | ✅ Sim                      | ✅ Sim                                 |
 | Cadastra laboratórios     | ❌ Não                      | ❌ Não                                 |
 | Cadastra equipamentos     | ❌ Não                      | ❌ Não                                 |
@@ -118,7 +114,7 @@ Pouco tempo hábil no dia a dia para gerenciar burocracias manuais de chaves ou 
 
 ## 💡 Insight
 
-> O sistema deve reduzir a dependência de processos informais e burocráticos, permitindo que **Lucas** tenha autonomia para reservar e utilizar os laboratórios, enquanto **Mariana** consiga planejar e controlar os recursos necessários para suas aulas.
+> O sistema deve reduzir a dependência de processos informais, permitindo que **Lucas** solicite e acompanhe reservas, enquanto **Mariana** organiza o uso dos laboratórios e analisa as solicitações pendentes.
 
 ---
 

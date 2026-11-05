@@ -7,7 +7,7 @@ function paraUtcIso(valorLocal) {
 }
 
 function formatarData(valor) {
-  return new Date(valor).toLocaleString();
+  return new Date(valor).toLocaleString('pt-BR');
 }
 
 export default function ConsultaDisponibilidade({ laboratorio }) {
@@ -76,7 +76,7 @@ export default function ConsultaDisponibilidade({ laboratorio }) {
           />
         </label>
         <button type="submit" disabled={consultando} aria-busy={consultando} style={estiloBotao}>
-          {consultando ? <LoadingSpinner label="A consultar..." inline /> : 'Ver horários'}
+          {consultando ? <LoadingSpinner label="Consultando..." inline /> : 'Ver horários'}
         </button>
       </form>
 

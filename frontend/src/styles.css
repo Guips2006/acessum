@@ -34,7 +34,7 @@
   --canvas: #151d26;
   --navy: #101720;
   --blue: #90adff;
-  --blue-hover: #b0c4ff;
+  --blue-hover: #3365fb;
   --green: #83d6b3;
   --red: #ff9a9f;
   --amber: #ffd27b;
@@ -215,6 +215,16 @@ textarea:focus-visible {
   place-items: center;
   color: #9eb2ff;
   font-size: 18px;
+}
+
+.sidebar-pending-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  margin-left: auto;
+  background: #ef4444;
+  border: 1px solid #ffffff;
+  border-radius: 50%;
 }
 
 .sidebar-footer {
@@ -715,6 +725,202 @@ img.topbar-avatar {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+
+.aluno-dashboard-grid,
+.aluno-favoritos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.aluno-checkin-card,
+.aluno-status-card,
+.aluno-action-card,
+.aluno-favorito-card,
+.aluno-favoritos-empty {
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.aluno-checkin-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-inline-start: 5px solid var(--blue);
+}
+
+.aluno-checkin-icon,
+.aluno-status-heading,
+.aluno-favorito-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--blue);
+}
+
+.aluno-checkin-copy {
+  flex: 1;
+}
+
+.aluno-checkin-copy h3,
+.aluno-status-heading h3,
+.aluno-favorito-title h3 {
+  margin: 4px 0;
+  color: var(--ink);
+}
+
+.aluno-checkin-copy p,
+.aluno-status-card p,
+.aluno-favorito-card p,
+.aluno-favoritos-empty {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.aluno-checkin-copy p,
+.aluno-status-card p,
+.aluno-favorito-card p {
+  margin: 6px 0;
+}
+
+.aluno-status-card,
+.aluno-action-card,
+.aluno-favorito-card {
+  padding: 18px;
+}
+
+.aluno-status-card {
+  border-inline-start: 5px solid var(--green);
+}
+
+.aluno-status-card.is-warning {
+  border-inline-start-color: var(--amber);
+}
+
+.aluno-status-card.is-critical {
+  border-inline-start-color: var(--red);
+}
+
+.aluno-status-card.is-warning .aluno-status-heading {
+  color: var(--amber);
+}
+
+.aluno-status-card.is-critical .aluno-status-heading {
+  color: var(--red);
+}
+
+.aluno-status-count {
+  font-weight: 700;
+}
+
+.aluno-status-card > strong {
+  color: var(--green);
+}
+
+.aluno-status-card.is-warning > strong {
+  color: var(--amber);
+}
+
+.aluno-status-card.is-critical > strong {
+  color: var(--red);
+}
+
+.aluno-action-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: var(--blue);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.aluno-action-card:hover {
+  border-color: var(--blue);
+  transform: translateY(-2px);
+}
+
+.aluno-action-card span {
+  display: grid;
+  gap: 5px;
+  color: var(--ink);
+}
+
+.aluno-action-card small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.aluno-favoritos {
+  display: grid;
+  gap: 16px;
+}
+
+.aluno-favoritos-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.aluno-favoritos-heading h2 {
+  margin: 6px 0 0;
+  color: var(--ink);
+}
+
+.aluno-favoritos-empty {
+  margin: 0;
+  padding: 18px;
+}
+
+.aluno-favorito-title {
+  color: var(--amber);
+}
+
+.aluno-favorito-title h3 {
+  font-size: 15px;
+}
+
+.aluno-favorito-card .button-primary {
+  margin-top: 12px;
+  padding: 9px 13px;
+}
+
+.aluno-checkin-card .button-primary,
+.aluno-favorito-card .button-primary {
+  color: var(--surface);
+}
+
+.aluno-favorito-inativo {
+  color: var(--muted);
+}
+
+.button-secondary {
+  padding: 9px 13px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.button-secondary:hover {
+  border-color: var(--blue);
+}
+
+.feedback-success {
+  padding: 11px 13px;
+  color: var(--green);
+  background: var(--surface);
+  border: 1px solid var(--green);
+  border-radius: 9px;
+  font-size: 12px;
 }
 
 .dashboard-card {
@@ -1472,9 +1678,10 @@ img.topbar-avatar {
 }
 
 .dashboard-filters select,
-.history-report-controls input,
+.history-report-controls input:not(.history-calendar-input),
 .history-report-controls select {
   min-height: 38px;
+  margin-top: 0;
   padding: 7px 9px;
   color: var(--ink);
   background: var(--surface);
@@ -1494,29 +1701,204 @@ img.topbar-avatar {
 .history-report-controls > button {
   min-height: 38px;
   padding: 7px 12px;
-  color: #ffffff;
-  background: #2456c4;
+  color: var(--surface);
+  background: var(--blue);
   border: 0;
   border-radius: 5px;
   cursor: pointer;
 }
 
+.history-view {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  margin-top: 20px;
+  color: var(--ink);
+}
+
+.history-header,
+.history-results {
+  min-width: 0;
+  padding: 24px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.history-header {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+}
+
+.history-header h2 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.history-back-button {
+  min-height: 40px;
+}
+
 .history-report-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   align-items: end;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 18px 0 22px;
-  padding: 14px 0;
-  border-block: 1px solid var(--line);
+  gap: 14px;
+  margin: 0;
+  padding: 24px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
 }
 
 .history-report-controls label {
   display: grid;
+  min-width: 0;
   gap: 5px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
+}
+
+.history-report-field {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.history-date-control {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-date-control > input[type='text'] {
+  width: 100%;
+  min-width: 0;
+}
+
+.history-date-control > input[aria-invalid='true'] {
+  border-color: var(--red);
+}
+
+.history-date-picker-button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.history-date-picker-button:hover {
+  border-color: var(--blue);
+}
+
+.history-calendar-input {
+  position: absolute;
+  z-index: -1;
+  width: 1px !important;
+  min-height: 0 !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.history-date-error {
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.date-time-control {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-time-control > input[type='text'] {
+  width: 100%;
+  min-width: 0;
+}
+
+.date-time-control > input[aria-invalid='true'] {
+  border-color: var(--red) !important;
+}
+
+.date-time-picker-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.date-time-picker-button:hover {
+  border-color: var(--blue);
+}
+
+.date-time-calendar-input {
+  position: absolute;
+  z-index: -1;
+  width: 1px !important;
+  min-height: 0 !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.date-time-error {
+  display: block;
+  margin-top: 5px;
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.history-results {
+  display: grid;
+  gap: 12px;
+}
+
+.history-empty {
+  margin: 0;
+  padding: 18px 20px;
+  color: var(--muted);
+}
+
+.app-content .history-empty {
+  color: var(--muted);
+}
+
+.history-reservation-list {
+  display: grid;
+  gap: 12px;
 }
 
 .notification-center {
@@ -2060,6 +2442,13 @@ img.topbar-avatar {
   border-color: var(--line);
 }
 
+:root[data-contraste='alto'] .history-header,
+:root[data-contraste='alto'] .history-report-controls,
+:root[data-contraste='alto'] .history-results {
+  border: 2px solid var(--line);
+  box-shadow: none;
+}
+
 :root[data-contraste='alto'] body,
 :root[data-contraste='alto'] .app-content,
 :root[data-contraste='alto'] .settings-view {
@@ -2310,5 +2699,442 @@ img.topbar-avatar {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+.grade-modal-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgb(0 0 0 / 65%);
+}
+
+.grade-modal {
+  display: grid;
+  width: min(1120px, 100%);
+  max-height: min(88vh, 900px);
+  gap: 16px;
+  overflow: auto;
+  padding: 24px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.grade-modal-header,
+.grade-controles,
+.grade-legenda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.grade-modal-header h2 {
+  margin: 5px 0 0;
+  color: var(--ink);
+}
+
+.grade-fechar,
+.grade-navegar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.grade-controles label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.grade-controles input {
+  padding: 8px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.grade-data-controle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grade-controles .grade-semana-input {
+  width: 120px;
+}
+
+.grade-controles .grade-calendario-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.grade-controles > span,
+.grade-observacao {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.grade-observacao {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.grade-legenda {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.grade-legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.grade-indicador {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+}
+
+.grade-indicador.is-livre {
+  color: var(--green);
+}
+
+.grade-indicador.is-ocupado {
+  color: var(--red);
+}
+
+.grade-dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(150px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.grade-dia {
+  min-height: 170px;
+  padding: 12px;
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.grade-dia h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.grade-periodos {
+  display: grid;
+  gap: 7px;
+}
+
+.grade-periodo {
+  margin: 0;
+  padding: 7px;
+  border: 2px solid currentColor;
+  border-radius: 7px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.grade-periodo.is-livre {
+  color: var(--green);
+}
+
+.grade-periodo.is-ocupado {
+  color: var(--red);
+}
+
+.grade-sem-periodos {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.resource-view {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+  color: var(--ink);
+}
+
+.resource-card {
+  padding: 18px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.resource-card-heading,
+.resource-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.resource-card-heading h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0 0 10px;
+  color: var(--ink);
+}
+
+.resource-status {
+  font-size: 12px;
+}
+
+.resource-status.is-active {
+  color: var(--green);
+}
+
+.resource-status.is-inactive {
+  color: var(--red);
+}
+
+.favorite-toggle {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.favorite-toggle.is-favorite {
+  color: var(--amber);
+}
+
+.favorite-toggle:disabled {
+  cursor: wait;
+}
+
+.resource-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.resource-actions .button-secondary,
+.resource-reserve-button {
+  min-height: 40px;
+}
+
+.resource-reserve-button {
+  padding: 9px 13px;
+}
+
+.history-reservation-card {
+  padding: 16px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.shared-reservation-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.history-action-button,
+.history-cancel-button {
+  min-height: 42px;
+  margin: 8px 8px 0 0;
+  padding: 10px 14px;
+}
+
+.history-cancel-button {
+  color: var(--surface);
+  background: var(--red);
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.co-reservantes-fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.co-reservantes-fieldset legend {
+  padding: 0 5px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.co-reservantes-fieldset input {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.co-reservantes-resultados,
+.co-reservantes-selecionados {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.co-reservantes-resultados li,
+.co-reservantes-selecionados li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px;
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.co-reservantes-resultados li > span,
+.co-reservantes-selecionados li > span {
+  display: grid;
+  gap: 3px;
+}
+
+.co-reservantes-resultados small,
+.co-reservantes-selecionados small,
+.co-reservantes-ajuda {
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .aluno-checkin-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+
+  .aluno-checkin-copy {
+    flex-basis: calc(100% - 48px);
+  }
+
+  .aluno-checkin-card > .button-primary {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .aluno-favoritos-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .grade-modal {
+    max-height: 92vh;
+    padding: 18px;
+  }
+
+  .grade-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .grade-controles {
+    flex-wrap: wrap;
+  }
+
+  .grade-controles label {
+    order: 1;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .grade-data-controle {
+    order: 1;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .grade-controles > span {
+    order: 2;
+  }
+
+  .grade-dias {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .resource-card-heading {
+    align-items: flex-start;
+  }
+
+  .resource-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .resource-actions > button {
+    width: 100%;
+  }
+
+  .co-reservantes-resultados li,
+  .co-reservantes-selecionados li {
+    align-items: flex-start;
+  }
+
+  .grade-dia {
+    min-height: auto;
+  }
+
+  .history-header,
+  .history-report-controls,
+  .history-results {
+    padding: 18px;
+  }
+
+  .history-report-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .history-report-controls > button {
+    width: 100%;
+    min-height: 44px;
   }
 }

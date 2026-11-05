@@ -1,454 +1,139 @@
 # Casos de Uso — Aluno
 
-Este documento apresenta os casos de uso disponíveis para o perfil Aluno no sistema Acessum.
+Este documento resume os fluxos do perfil Aluno. Os endpoints, contratos de
+dados, regras de autorização e componentes estão descritos nas SPECs individuais
+referenciadas no [mapa de SPECs](../mapa_de_specs.md).
 
----
+## UC-01 — Entrar no sistema
 
-## UC-01 — Autenticar-se
+**Ator:** Aluno<br>
+**Pré-condições:** conta cadastrada e ativa.
 
-**Ator principal:** Aluno
+1. O Aluno informa e-mail e senha.
+2. O sistema valida as credenciais e inicia a sessão.
+3. O sistema apresenta as funcionalidades permitidas ao perfil.
 
-**Objetivo:** Permitir que o aluno acesse o sistema utilizando suas credenciais.
+Credenciais inválidas ou conta inativa impedem o acesso. A conta suspensa por
+`NO_SHOW` ainda pode autenticar e consultar funções permitidas, mas não pode
+solicitar reservas.
 
-### Pré-condições
+**SPEC:** SPEC-001, SPEC-016.
 
-- O aluno deve estar cadastrado no sistema.
-- O aluno deve estar ativo.
+## UC-02 — Consultar laboratórios e equipamentos
 
-### Fluxo principal
+**Ator:** Aluno<br>
+**Pré-condições:** sessão autenticada.
 
-1. O aluno acessa a tela de login.
-2. O aluno informa seu e-mail e senha.
-3. O sistema valida as credenciais.
-4. O sistema identifica o perfil do usuário.
-5. O sistema permite o acesso às funcionalidades disponíveis para o aluno.
+1. O Aluno consulta os laboratórios.
+2. O sistema apresenta os laboratórios ativos e os equipamentos associados,
+   identificando seus status `ATIVO` ou `INATIVO`.
+3. O Aluno pode consultar os detalhes dos recursos.
 
-### Fluxos alternativos
+Equipamentos são apenas consultáveis: não há reserva individual nem status de
+manutenção no domínio atual.
 
-- Caso o e-mail ou senha estejam incorretos, o sistema informa que as credenciais são inválidas.
-- Caso o usuário esteja inativo, o sistema impede o acesso.
+**SPEC:** SPEC-005.
 
-### Pós-condições
+## UC-03 — Consultar disponibilidade semanal
 
-- O aluno está autenticado no sistema.
+**Ator:** Aluno<br>
+**Pré-condições:** sessão autenticada e laboratório ativo.
 
-### Requisitos relacionados
+1. O Aluno informa uma data e consulta a grade semanal do laboratório.
+2. O sistema apresenta os períodos ocupados e livres conforme as reservas
+   aprovadas ou em uso.
+3. O Aluno pode navegar entre semanas e abrir o fluxo de solicitação.
 
-- RF-01 — Autenticação
-- RF-02 — Controle de perfis e permissões
+**SPEC:** SPEC-006, SPEC-028.
 
----
+## UC-04 — Solicitar reserva de laboratório
 
-## UC-02 — Consultar laboratórios
+**Ator:** Aluno<br>
+**Pré-condições:** sessão autenticada, laboratório ativo, período válido e conta
+sem suspensão vigente.
 
-**Ator principal:** Aluno
+1. O Aluno seleciona laboratório, período e finalidade.
+2. Opcionalmente, adiciona outros usuários ativos como co-reservantes.
+3. O sistema valida o período e registra a reserva como `PENDENTE`.
+4. O Professor analisa a solicitação.
 
-**Objetivo:** Permitir que o aluno visualize os laboratórios cadastrados no sistema.
+Reservas em conflito são impedidas. O limite numérico de reservas futuras não
+está implementado (OPEN-04).
 
-### Pré-condições
+**SPEC:** SPEC-007, SPEC-008, SPEC-029.
 
-- O aluno deve estar autenticado.
+## UC-05 — Consultar e cancelar reservas
 
-### Fluxo principal
+**Ator:** Aluno titular ou co-reservante<br>
+**Pré-condições:** sessão autenticada.
 
-1. O aluno acessa a área de laboratórios.
-2. O sistema consulta os laboratórios cadastrados.
-3. O sistema apresenta os laboratórios e suas respectivas situações.
-4. O aluno seleciona um laboratório para visualizar seus detalhes.
+1. O Aluno consulta suas reservas e os respectivos status.
+2. O titular pode cancelar uma reserva `PENDENTE` ou `APROVADA` até uma hora
+   antes do início.
+3. O sistema atualiza a reserva para `CANCELADA` e libera o período.
 
-### Fluxos alternativos
+O histórico pode ser acessado pelo titular e pelos co-reservantes conforme os
+filtros da API; o cancelamento é permitido somente ao titular.
 
-- Caso não existam laboratórios cadastrados, o sistema informa que não existem recursos disponíveis.
+**SPEC:** SPEC-009, SPEC-012, SPEC-029.
 
-### Pós-condições
+## UC-06 — Fazer check-in e encerrar a utilização
 
-- O aluno consegue visualizar as informações dos laboratórios.
+**Ator:** Aluno titular da reserva<br>
+**Pré-condições:** reserva `APROVADA` e sessão autenticada.
 
-### Requisitos relacionados
+1. Entre 15 minutos antes e 15 minutos depois do início, o Aluno faz check-in.
+2. O sistema altera o status para `EM_USO`.
+3. Ao terminar, o Aluno encerra a utilização e o sistema altera o status para
+   `CONCLUIDA`.
 
-- RF-02 — Controle de perfis e permissões
-- RF-03 — Consulta de laboratórios e equipamentos
+Se o check-in não ocorrer dentro da janela, a reserva passa para `NO_SHOW`.
 
----
+**SPEC:** SPEC-010, SPEC-011, SPEC-016.
 
-## UC-03 — Consultar equipamentos
+## UC-07 — Reportar problema
 
-**Ator principal:** Aluno
+**Ator:** Aluno<br>
+**Pré-condições:** sessão autenticada.
 
-**Objetivo:** Permitir que o aluno consulte os equipamentos disponíveis nos laboratórios.
+1. O Aluno seleciona o laboratório, informa a descrição e envia o relato.
+2. O sistema registra o relato como `ABERTO`.
+3. O Administrador pode consultar o relato e alterar seu status para
+   `RESOLVIDO`.
 
-### Pré-condições
+**SPEC:** SPEC-013.
 
-- O aluno deve estar autenticado.
-- Deve existir pelo menos um laboratório cadastrado.
+## UC-08 — Favoritar laboratório
 
-### Fluxo principal
+**Ator:** Aluno<br>
+**Pré-condições:** sessão autenticada e laboratório disponível.
 
-1. O aluno seleciona um laboratório.
-2. O sistema apresenta os equipamentos associados ao laboratório.
-3. O sistema informa a situação dos equipamentos.
-4. O aluno consulta as informações do equipamento.
+1. O Aluno marca ou desmarca um laboratório como favorito.
+2. O sistema persiste a preferência individual.
+3. O Aluno pode filtrar a lista pelos laboratórios favoritos e iniciar uma
+   solicitação com um favorito pré-selecionado.
 
-### Fluxos alternativos
+**SPEC:** SPEC-027.
 
-- Caso o laboratório não possua equipamentos cadastrados, o sistema informa que não existem equipamentos disponíveis.
-- Caso um equipamento esteja marcado como "Em manutenção", o sistema informa sua indisponibilidade.
+## UC-09 — Consultar dados e perfil
 
-### Pós-condições
+**Ator:** Aluno<br>
+**Pré-condições:** sessão autenticada.
 
-- O aluno consegue consultar os equipamentos do laboratório e suas situações.
+O Aluno pode consultar e atualizar os dados de perfil permitidos, incluindo
+CPF, RG, data de nascimento e avatar, consultar a atividade registrada e
+alterar a própria senha. A criação de usuários e a redefinição assistida de
+senha são funções administrativas; a troca de senha temporária é obrigatória
+no próximo acesso.
 
-### Requisitos relacionados
+**SPEC:** SPEC-015, SPEC-022, SPEC-023.
 
-- RF-02 — Controle de perfis e permissões
-- RF-03 — Consulta de laboratórios e equipamentos
-- RB-02 — Equipamento em manutenção
+## Recursos de interface
 
----
+As preferências de tema e acessibilidade, inclusive modo escuro e alto
+contraste, são mantidas no navegador e estão disponíveis aos perfis suportados.
+O dashboard do Aluno também oferece acesso rápido às reservas elegíveis para
+check-in e exibe a contagem de faltas e o status da conta. Não há pontuação
+numérica de confiança calculada no código atual.
 
-## UC-04 — Consultar disponibilidade
-
-**Ator principal:** Aluno
-
-**Objetivo:** Permitir que o aluno consulte os horários disponíveis e ocupados de um laboratório ou equipamento.
-
-### Pré-condições
-
-- O aluno deve estar autenticado.
-- O recurso deve estar cadastrado no sistema.
-
-### Fluxo principal
-
-1. O aluno seleciona um laboratório ou equipamento.
-2. O aluno informa a data e o período desejados.
-3. O sistema consulta as reservas existentes.
-4. O sistema verifica a situação do recurso.
-5. O sistema verifica possíveis conflitos de reservas.
-6. O sistema apresenta os horários disponíveis e ocupados.
-
-### Fluxos alternativos
-
-- Caso não existam horários disponíveis, o sistema informa a indisponibilidade.
-- Caso o recurso esteja indisponível, o sistema informa sua situação.
-- Caso o equipamento esteja em manutenção, o sistema informa que o equipamento não pode ser reservado durante o período de manutenção.
-
-### Pós-condições
-
-- O aluno conhece os horários disponíveis para realizar uma solicitação de reserva.
-
-### Requisitos relacionados
-
-- RF-04 — Consulta de disponibilidade
-- RB-01 — Conflito de reservas
-- RB-02 — Equipamento em manutenção
-
----
-
-## UC-05 — Solicitar reserva
-
-**Ator principal:** Aluno
-
-**Objetivo:** Permitir que o aluno solicite a utilização de um laboratório ou equipamento em determinado período.
-
-### Pré-condições
-
-- O aluno deve estar autenticado.
-- O recurso deve estar cadastrado.
-- O período solicitado deve estar disponível.
-- O aluno não pode ter atingido o limite de reservas futuras.
-- O recurso não pode estar indisponível durante o período solicitado.
-
-### Fluxo principal
-
-1. O aluno consulta a disponibilidade do recurso.
-2. O aluno seleciona o recurso.
-3. O aluno informa a data e o horário desejados.
-4. O sistema verifica a disponibilidade do recurso.
-5. O sistema verifica se existe conflito com uma reserva aprovada.
-6. O sistema verifica se o recurso está em manutenção.
-7. O sistema verifica o limite de reservas futuras do aluno.
-8. O sistema registra a solicitação de reserva.
-9. O sistema associa a solicitação ao aluno e ao recurso.
-10. O sistema informa que a solicitação foi registrada.
-
-### Fluxos alternativos
-
-#### FA01 — Conflito de reserva
-
-1. O sistema identifica uma reserva aprovada para o mesmo recurso em período conflitante.
-2. O sistema impede o registro da solicitação.
-3. O sistema informa ao aluno que o período está indisponível.
-
-#### FA02 — Equipamento em manutenção
-
-1. O sistema identifica que o equipamento está marcado como "Em manutenção".
-2. O sistema impede a solicitação para o período de indisponibilidade.
-3. O sistema informa o motivo ao aluno.
-
-#### FA03 — Limite de reservas atingido
-
-1. O sistema identifica que o aluno atingiu o limite de reservas futuras.
-2. O sistema impede uma nova solicitação.
-3. O sistema informa que uma reserva existente deve ser concluída ou cancelada antes de uma nova solicitação.
-
-#### FA04 — Equipamento de uso controlado
-
-1. O sistema identifica que o equipamento é classificado como de uso controlado.
-2. O sistema registra a solicitação, quando as demais regras forem atendidas.
-3. O sistema encaminha a solicitação para aprovação de um professor ou técnico responsável.
-4. O aluno aguarda a aprovação antes de utilizar o equipamento.
-
-### Pós-condições
-
-- Uma solicitação de reserva é registrada.
-- A solicitação fica vinculada ao aluno e ao recurso.
-- Caso o recurso seja de uso controlado, a utilização depende da aprovação de um professor ou técnico responsável.
-
-### Requisitos relacionados
-
-- RF-05 — Solicitação de reserva
-- RF-06 — Validação da solicitação
-- RB-01 — Conflito de reservas
-- RB-02 — Equipamento em manutenção
-- RB-03 — Equipamento de uso controlado
-- RB-04 — Limite de reservas
-
----
-
-## UC-06 — Consultar reservas
-
-**Ator principal:** Aluno
-
-**Objetivo:** Permitir que o aluno visualize suas reservas e seus respectivos status.
-
-### Pré-condições
-
-- O aluno deve estar autenticado.
-
-### Fluxo principal
-
-1. O aluno acessa a área de reservas.
-2. O sistema busca as reservas associadas ao aluno.
-3. O sistema apresenta as reservas.
-4. O sistema informa o recurso, período e status de cada reserva.
-5. O aluno pode selecionar uma reserva para visualizar seus detalhes.
-
-### Fluxos alternativos
-
-- Caso o aluno não possua reservas, o sistema informa que não existem reservas registradas.
-
-### Pós-condições
-
-- As reservas do aluno são apresentadas.
-
-### Requisitos relacionados
-
-- RF-10 — Histórico de reservas
-
----
-
-## UC-07 — Cancelar reserva
-
-**Ator principal:** Aluno
-
-**Objetivo:** Permitir que o aluno cancele uma reserva dentro do prazo permitido.
-
-### Pré-condições
-
-- O aluno deve estar autenticado.
-- O aluno deve possuir uma reserva.
-- A reserva deve estar dentro do prazo permitido para cancelamento.
-
-### Fluxo principal
-
-1. O aluno acessa suas reservas.
-2. O aluno seleciona a reserva que deseja cancelar.
-3. O aluno solicita o cancelamento.
-4. O sistema verifica se o cancelamento está dentro do prazo permitido.
-5. O sistema altera o status da reserva para "Cancelada".
-6. O sistema libera o período para novas reservas, conforme as regras do sistema.
-7. O sistema informa ao aluno que a reserva foi cancelada.
-
-### Fluxos alternativos
-
-#### FA01 — Prazo de cancelamento expirado
-
-1. O sistema identifica que a reserva está fora do prazo permitido para cancelamento.
-2. O sistema impede o cancelamento.
-3. O sistema informa ao aluno o motivo.
-
-### Pós-condições
-
-- A reserva é cancelada quando o cancelamento é permitido.
-- O período reservado pode voltar a ficar disponível.
-
-### Requisitos relacionados
-
-- RB-05 — Cancelamento
-
----
-
-## UC-08 — Realizar check-in
-
-**Ator principal:** Aluno ou Professor titular da reserva
-
-**Objetivo:** Registrar o início da utilização do recurso reservado.
-
-### Pré-condições
-
-- O aluno deve estar autenticado.
-- O aluno deve possuir uma reserva aprovada.
-- O horário atual deve estar entre 15 minutos antes e 15 minutos depois do início agendado.
-
-### Fluxo principal
-
-1. O aluno acessa sua reserva aprovada.
-2. O aluno solicita o check-in.
-3. O sistema verifica a reserva.
-4. O sistema verifica se o horário está dentro da janela permitida.
-5. O sistema registra o início da utilização.
-6. O sistema altera o status da reserva para "Em uso".
-
-### Fluxos alternativos
-
-#### FA01 — Check-in fora da janela permitida
-
-1. O aluno solicita o check-in.
-2. O sistema verifica que ainda faltam mais de 15 minutos para o início agendado.
-3. O sistema impede o check-in sem alterar o status.
-4. O sistema informa ao aluno quando o check-in estará disponível.
-
-#### FA02 — No-show
-
-1. O aluno não realiza o check-in até 15 minutos depois do início agendado.
-2. O sistema altera automaticamente a reserva aprovada para `NO_SHOW`.
-3. Uma tentativa tardia de check-in é rejeitada e informa que o no-show foi registado.
-
-#### FA03 — Reserva não aprovada
-
-1. O aluno tenta realizar o check-in de uma reserva que não foi aprovada.
-2. O sistema impede o check-in.
-3. O sistema informa que a reserva não está aprovada.
-
-#### FA04 — Reserva inexistente ou inválida
-
-1. O sistema não encontra uma reserva válida associada ao aluno.
-2. O sistema impede o check-in.
-3. O sistema informa que não existe uma reserva válida para utilização.
-
-### Pós-condições
-
-- O início da utilização é registrado.
-- A reserva passa para o estado "Em uso".
-
-### Requisitos relacionados
-
-- RF-09 — Check-in e encerramento
-- RB-06 — Janela de check-in
-- RB-07 — No-show
-
----
-
-## UC-09 — Encerrar utilização
-
-**Ator principal:** Aluno ou Professor titular da reserva
-
-**Objetivo:** Registrar o término da utilização do recurso reservado.
-
-### Pré-condições
-
-- O titular deve estar autenticado.
-- O titular deve possuir uma reserva com status "Em uso".
-
-### Fluxo principal
-
-1. O titular acessa a reserva em andamento.
-2. O titular solicita o encerramento da utilização.
-3. O sistema valida que a reserva está em uso e pertence ao titular.
-4. O sistema registra a data e hora efetiva do encerramento.
-5. O sistema altera o status da reserva para "Concluída".
-
-### Fluxos alternativos
-
-- Caso a reserva não pertença ao titular ou não esteja com status "Em uso", o sistema impede o encerramento.
-
-### Pós-condições
-
-- A utilização do recurso é encerrada.
-- A reserva passa para o estado "Concluída".
-- A reserva pode fazer parte do histórico do titular.
-
-### Requisitos relacionados
-
-- RF-09 — Check-in e encerramento
-- RF-10 — Histórico de reservas
-- RB-04 — Limite de reservas
-
----
-
-## UC-10 — Reportar problema
-
-**Ator principal:** Aluno
-
-**Objetivo:** Permitir que o aluno informe problemas encontrados em laboratórios ou equipamentos.
-
-### Pré-condições
-
-- O aluno deve estar autenticado.
-
-### Fluxo principal
-
-1. O aluno acessa a opção de reportar problema.
-2. O aluno seleciona o laboratório relacionado ao problema.
-3. O aluno pode selecionar o equipamento afetado.
-4. O aluno descreve o problema.
-5. O aluno envia o relato.
-6. O sistema registra a ocorrência.
-7. O sistema define o status do relato como "Aberto".
-
-### Fluxos alternativos
-
-- Caso o aluno não informe o laboratório ou recurso relacionado ao problema, o sistema solicita o preenchimento das informações necessárias.
-- Caso a descrição do problema não seja informada, o sistema solicita que o aluno descreva a ocorrência.
-
-### Pós-condições
-
-- O problema é registrado no sistema e fica disponível para tratamento.
-
-### Requisitos relacionados
-
-- RF-03 — Consulta de laboratórios e equipamentos
-- RF-02 — Controle de perfis e permissões
-
----
-
-# Relação entre Casos de Uso e Regras de Negócio
-
-As regras de negócio utilizadas pelos casos de uso do Aluno são as regras definidas em `requisitos.md`.
-
-| Regra | Descrição | Casos de uso relacionados |
-|---|---|---|
-| RB-01 | Conflito de reservas | UC-04, UC-05 |
-| RB-02 | Equipamento em manutenção | UC-03, UC-04, UC-05 |
-| RB-03 | Equipamento de uso controlado | UC-05 |
-| RB-04 | Limite de reservas | UC-05 |
-| RB-05 | Cancelamento | UC-07 |
-| RB-06 | Janela de check-in | UC-08 |
-| RB-07 | No-show | UC-08 |
-
----
-
-# Resumo das Funcionalidades do Aluno
-
-| Código | Caso de Uso | Ator |
-|---|---|---|
-| UC-01 | Autenticar-se | Aluno |
-| UC-02 | Consultar laboratórios | Aluno |
-| UC-03 | Consultar equipamentos | Aluno |
-| UC-04 | Consultar disponibilidade | Aluno |
-| UC-05 | Solicitar reserva | Aluno |
-| UC-06 | Consultar reservas | Aluno |
-| UC-07 | Cancelar reserva | Aluno |
-| UC-08 | Realizar check-in | Aluno |
-| UC-09 | Encerrar utilização | Aluno |
-| UC-10 | Reportar problema | Aluno |
+**SPEC:** SPEC-014, SPEC-025, SPEC-026.

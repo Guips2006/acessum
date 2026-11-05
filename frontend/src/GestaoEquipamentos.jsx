@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { formatarStatus } from './utils/formatarStatus';
 
 export default function GestaoEquipamentos({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -64,7 +65,7 @@ export default function GestaoEquipamentos({ voltar }) {
     setEquipamentoEmAtualizacao(equipamento.id);
     try {
       const response = await api.patch(`/api/equipamentos/${equipamento.id}/status`);
-      setSucesso(`Status do equipamento atualizado para ${response.data.novo_status}.`);
+      setSucesso(`Status do equipamento atualizado para ${formatarStatus(response.data.novo_status)}.`);
       await carregarDados();
     } catch (err) {
       setErro(err.response?.data?.detail || 'Erro ao alterar status do equipamento.');
@@ -143,7 +144,7 @@ export default function GestaoEquipamentos({ voltar }) {
             aria-busy={salvando}
             style={estiloBotaoPrimario}
           >
-            {salvando ? <LoadingSpinner label="A guardar..." inline /> : 'Salvar equipamento'}
+            {salvando ? <LoadingSpinner label="Salvando..." inline /> : 'Salvar equipamento'}
           </button>
         </form>
       </div>
@@ -151,7 +152,7 @@ export default function GestaoEquipamentos({ voltar }) {
       <section aria-labelledby="lista-equipamentos-titulo">
         <h3 id="lista-equipamentos-titulo">Equipamentos cadastrados</h3>
         {carregando ? (
-          <LoadingSpinner label="A carregar equipamentos..." />
+          <LoadingSpinner label="Carregando equipamentos..." />
         ) : equipamentos.length === 0 ? (
           <p>Nenhum equipamento cadastrado.</p>
         ) : (
@@ -165,7 +166,7 @@ export default function GestaoEquipamentos({ voltar }) {
                 <p style={{ margin: '4px 0' }}>Descrição: {equipamento.descricao || '—'}</p>
                 <p style={{ margin: '4px 0' }}>Laboratório: {nomeLaboratorio(equipamento.laboratorio_id)}</p>
                 <p style={{ margin: '4px 0 12px', color: equipamento.status === 'ATIVO' ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
-                  Status: {equipamento.status}
+                  Status: {formatarStatus(equipamento.status)}
                 </p>
                 <button
                   type="button"
@@ -178,7 +179,7 @@ export default function GestaoEquipamentos({ voltar }) {
                   }}
                 >
                   {equipamentoEmAtualizacao === equipamento.id
-                    ? <LoadingSpinner label="A atualizar..." inline />
+                    ? <LoadingSpinner label="Atualizando..." inline />
                     : equipamento.status === 'ATIVO' ? 'Inativar equipamento' : 'Ativar equipamento'}
                 </button>
               </article>

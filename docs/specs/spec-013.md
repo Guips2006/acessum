@@ -1,7 +1,7 @@
 # SPEC-013: Relato de Problemas
 
-**Status:** Concluída  
-**Objetivo:** Criar um canal rápido para reportar defeitos em laboratórios ou equipamentos.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Criar um canal rápido para reportar defeitos em laboratórios ou equipamentos.<br>
 **Atores:** Aluno, Professor.
 
 ## 1. Regras de Negócio e Modelagem
@@ -21,3 +21,5 @@
 * **Relato:** Formulário acionado pelo botão ⚠️ nos cards de laboratório e equipamento na consulta de recursos.
 * **Administração:** Cards de relatos com recurso, autor, data/hora, severidade e status; Admin pode marcar um relato como resolvido ou reabri-lo.
 * **Comunicação:** Todas as chamadas usam a instância `api` do `AuthContext`.
+
+**Contratos:** `RelatoProblemaCriar`, `RelatoProblemaResponse` e `RelatoProblemaStatusAtualizar`, em `backend/schemas.py`.

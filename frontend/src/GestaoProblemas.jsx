@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { formatarStatus } from './utils/formatarStatus';
 
 export default function GestaoProblemas({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -57,7 +58,7 @@ export default function GestaoProblemas({ voltar }) {
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
       {carregando ? (
-        <LoadingSpinner label="A carregar relatos..." />
+        <LoadingSpinner label="Carregando relatos..." />
       ) : relatos.length === 0 ? (
         <p>Nenhum problema reportado.</p>
       ) : (
@@ -70,13 +71,13 @@ export default function GestaoProblemas({ voltar }) {
               <h3 style={{ margin: '0 0 8px' }}>{relato.recurso_nome}</h3>
               <p style={{ margin: '4px 0' }}>Recurso: {relato.tipo_recurso === 'LABORATORIO' ? 'Laboratório' : 'Equipamento'}</p>
               <p style={{ margin: '4px 0' }}>Relatado por: {relato.usuario_nome}</p>
-              <p style={{ margin: '4px 0' }}>Data: {new Date(relato.data_hora).toLocaleString()}</p>
+              <p style={{ margin: '4px 0' }}>Data: {new Date(relato.data_hora).toLocaleString('pt-BR')}</p>
               <p style={{ margin: '8px 0' }}>{relato.descricao}</p>
               <p style={{ margin: '4px 0' }}>
                 Severidade: <strong>{rotuloSeveridade[relato.nivel_severidade]}</strong>
               </p>
               <p style={{ margin: '4px 0 12px', color: relato.status === 'ABERTO' ? '#9a5700' : '#28a745', fontWeight: 'bold' }}>
-                Status: {relato.status}
+                Status: {formatarStatus(relato.status)}
               </p>
               <button
                 type="button"
@@ -93,7 +94,7 @@ export default function GestaoProblemas({ voltar }) {
                 }}
               >
                 {relatoEmAtualizacao === relato.id
-                  ? <LoadingSpinner label="A atualizar..." inline />
+                  ? <LoadingSpinner label="Atualizando..." inline />
                   : relato.status === 'ABERTO' ? 'Marcar como resolvido' : 'Reabrir relato'}
               </button>
             </article>

@@ -11,10 +11,13 @@ from sqlalchemy.orm import Session
 from database import engine, Base, get_db, SessionLocal
 from migrations import aplicar_migracoes
 from routers import (
+    alunos,
     auth,
     auditoria,
     dashboard,
+    dashboard_aluno,
     equipamentos,
+    favoritos,
     laboratorios,
     notificacoes,
     notificacoes_conta,
@@ -61,8 +64,8 @@ async def lifespan(_: FastAPI):
             await tarefa
 
 
-Base.metadata.create_all(bind=engine)
 aplicar_migracoes(engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Acessum API", lifespan=lifespan)
 app.mount(
@@ -82,12 +85,15 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(usuarios.router)
+app.include_router(alunos.router)
+app.include_router(favoritos.router)
 app.include_router(laboratorios.router)
 app.include_router(equipamentos.router)
 app.include_router(problemas.router)
 app.include_router(reservas.router)
 app.include_router(perfil.router)
 app.include_router(dashboard.router)
+app.include_router(dashboard_aluno.router)
 app.include_router(relatorios.router)
 app.include_router(notificacoes.router)
 app.include_router(notificacoes_conta.router)

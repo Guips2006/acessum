@@ -41,6 +41,8 @@ Regras de Negócio
 
 ---
 
+> **Escopo desta baseline:** os RFs/RNFs/RBs abaixo são a especificação inicial da disciplina. A implementação atual e as evoluções até V2.1 estão rastreadas no [mapa de SPECs](mapa_de_specs.md) e nas [SPECs individuais](specs/). Em conflito com o código, as regras marcadas como não implementadas não devem ser tratadas como comportamento disponível.
+
 # 🔵 Requisitos Funcionais
 
 > Definem **o que o sistema deve fazer**.
@@ -93,7 +95,7 @@ Regras de Negócio
 | Perfil | Responsabilidade |
 |:---|:---|
 | 🎓 **Aluno** | Consultar recursos e solicitar reservas |
-| 👩‍🏫 **Professor/Técnico** | Gerenciar solicitações e recursos |
+| 👩‍🏫 **Professor** | Solicitar reservas e analisar solicitações pendentes |
 | ⚙️ **Administrador** | Gerenciar usuários e configurações do sistema |
 
 ---
@@ -133,8 +135,8 @@ Regras de Negócio
 
 **EARS — Event-driven**
 
-> **WHEN** o usuário selecionar um recurso e um período, **THE SYSTEM SHALL**
-> apresentar os horários disponíveis e ocupados para o recurso selecionado.
+> **WHEN** o usuário selecionar um laboratório e um período, **THE SYSTEM SHALL**
+> apresentar os horários disponíveis e ocupados para o laboratório selecionado.
 
 ---
 
@@ -153,7 +155,7 @@ Regras de Negócio
 
 **EARS — Event-driven**
 
-> **WHEN** um aluno selecionar um recurso e informar um período disponível,
+> **WHEN** um aluno ou professor selecionar um laboratório e informar um período,
 > **THE SYSTEM SHALL** registrar uma solicitação de reserva vinculada ao
 > usuário e ao recurso selecionado.
 
@@ -195,7 +197,7 @@ Regras de Negócio
 
 **EARS — Event-driven**
 
-> **WHEN** um professor ou técnico acessar as solicitações pendentes,
+> **WHEN** um professor acessar as solicitações pendentes,
 > **THE SYSTEM SHALL** apresentar as reservas que aguardam análise.
 
 ---
@@ -215,10 +217,10 @@ Regras de Negócio
 
 **EARS — Event-driven**
 
-> **WHEN** um professor ou técnico aprovar uma solicitação, **THE SYSTEM
+> **WHEN** um professor aprovar uma solicitação, **THE SYSTEM
 > SHALL** alterar o status da reserva para "Aprovada".
 
-> **WHEN** um professor ou técnico recusar uma solicitação, **THE SYSTEM
+> **WHEN** um professor recusar uma solicitação, **THE SYSTEM
 > SHALL** alterar o status da reserva para "Recusada".
 
 ---
@@ -238,10 +240,10 @@ Regras de Negócio
 
 **EARS — Event-driven**
 
-> **WHEN** um aluno realizar o check-in de uma reserva aprovada dentro do
+> **WHEN** o titular (Aluno ou Professor) realizar o check-in de uma reserva aprovada dentro do
 > período permitido, **THE SYSTEM SHALL** registrar o início da utilização.
 
-> **WHEN** o aluno finalizar a utilização do recurso, **THE SYSTEM SHALL**
+> **WHEN** o titular finalizar a utilização do laboratório, **THE SYSTEM SHALL**
 > registrar o encerramento e atualizar o status da reserva para "Concluída".
 
 ---
@@ -271,8 +273,7 @@ Regras de Negócio
 
 > Definem **como o sistema deve se comportar**.
 
-Os RNFs abaixo possuem condições verificáveis, conforme a orientação da
-disciplina sobre requisitos não funcionais mensuráveis. :contentReference[oaicite:2]{index=2}
+Os RNFs abaixo possuem condições verificáveis e orientam a validação do sistema.
 
 ---
 
@@ -381,32 +382,28 @@ disciplina sobre requisitos não funcionais mensuráveis. :contentReference[oaic
 
 > Definem **políticas e restrições específicas do domínio**.
 
-As regras de negócio devem permanecer separadas dos detalhes puramente
-técnicos e devem orientar os testes do sistema. :contentReference[oaicite:3]{index=3}
+As regras de negócio devem permanecer separadas dos detalhes puramente técnicos e orientar os testes do sistema.
 
 ---
 
 ## RB-01 — Conflito de reservas
 
-> **IF** um recurso possuir uma reserva aprovada para determinado período,
-> **THEN THE SYSTEM SHALL** impedir outra reserva aprovada para o mesmo recurso
-> durante período conflitante.
+> **IF** um laboratório possuir reserva `APROVADA` ou `EM_USO` em determinado
+> período, **THEN THE SYSTEM SHALL** impedir a criação ou aprovação de outra
+> reserva sobreposta para o mesmo laboratório. Reservas `PENDENTE` não bloqueiam
+> a agenda.
 
 ---
 
-## RB-02 — Equipamento em manutenção
+## RB-02 — Equipamento em manutenção (não implementada)
 
-> **IF** um equipamento estiver marcado como "Em manutenção", **THEN THE
-> SYSTEM SHALL** impedir novas reservas para o período em que o equipamento
-> estiver indisponível.
+O código atual não possui estado de manutenção nem reserva individual de equipamentos. O endpoint e a interface usam `ATIVO`/`INATIVO`; esta regra só pode ser considerada após decisão e implementação próprias.
 
 ---
 
-## RB-03 — Equipamento de uso controlado
+## RB-03 — Equipamento de uso controlado (não implementada)
 
-> **IF** um equipamento estiver classificado como de uso controlado, **THEN
-> THE SYSTEM SHALL** exigir aprovação de um professor ou técnico responsável
-> antes da utilização.
+O domínio atual não possui classificação de uso controlado. As reservas são de laboratório e todas entram como `PENDENTE`, aguardando análise de um Professor.
 
 ---
 
@@ -416,27 +413,31 @@ técnicos e devem orientar os testes do sistema. :contentReference[oaicite:3]{in
 > **THEN THE SYSTEM SHALL** impedir novas solicitações até que uma reserva
 > existente seja concluída ou cancelada.
 
+Esta regra ainda não tem limite numérico configurado nem é aplicada pelo fluxo atual. A decisão permanece em aberto (OPEN-04).
+
 ---
 
 ## RB-05 — Cancelamento
 
-> **IF** o usuário tentar cancelar uma reserva fora do prazo permitido,
-> **THEN THE SYSTEM SHALL** impedir o cancelamento.
+> **IF** o titular tentar cancelar uma reserva `PENDENTE` ou `APROVADA` com
+> menos de uma hora de antecedência, **THEN THE SYSTEM SHALL** impedir o
+> cancelamento.
 
 ---
 
 ## RB-06 — Janela de check-in
 
-> **IF** o usuário tentar realizar o check-in fora da janela permitida para
-> sua reserva, **THEN THE SYSTEM SHALL** impedir o check-in.
+> **IF** o titular tentar realizar o check-in fora da janela entre 15 minutos
+> antes e 15 minutos depois do início da reserva, **THEN THE SYSTEM SHALL**
+> impedir o check-in.
 
 ---
 
 ## RB-07 — No-show
 
-> **IF** o aluno não realizar o check-in dentro da janela permitida e não
-> cancelar a reserva previamente, **THEN THE SYSTEM SHALL** registrar a
-> ocorrência como "No-show".
+> **IF** o Aluno acumular três reservas `NO_SHOW` em uma janela móvel de 30
+> dias, **THEN THE SYSTEM SHALL** suspender novas solicitações de reserva por
+> sete dias.
 
 ---
 

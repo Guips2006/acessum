@@ -75,3 +75,11 @@ Este documento registra as principais decisões arquiteturais e escolhas de tecn
 - **Consequências:**
   - **Positivas:** Ícones SVG consistentes e fáceis de dimensionar sem desenhar ativos manualmente.
   - **Negativas:** Dependência adicional no bundle do frontend; importar apenas os ícones usados e manter carregamento sob demanda onde couber.
+
+## ADR 010: Migrações aditivas e idempotentes do SQLite
+- **Status:** Aceito e implementado
+- **Contexto:** O Acessum mantém bases SQLite existentes e adiciona campos e tabelas de forma incremental, sem perder reservas ou contas já cadastradas. O projeto não utiliza uma ferramenta externa de versionamento de migrações; a inicialização atual coordena as alterações em `backend/migrations.py`.
+- **Decisão:** Usar migrações aditivas verificadas por introspecção do esquema. Adicionar colunas somente quando ausentes e criar tabelas e índices com `IF NOT EXISTS`. Manter compatibilidade dos valores legados com `NULL`, padrões ou backfills explícitos e seguros. O `main.py` executa `aplicar_migracoes(engine)` antes de `Base.metadata.create_all(bind=engine)`.
+- **Consequências:**
+  - **Positivas:** A inicialização pode ser repetida sem recriar estruturas existentes; os dados legados são preservados e as tabelas novas permanecem aditivas.
+  - **Limitações:** A rotina não substitui um sistema de migrações versionadas nem oferece downgrade automático. Alterações que exijam reconstrução de tabelas ou transformação destrutiva precisam de estratégia própria e validação de backup.

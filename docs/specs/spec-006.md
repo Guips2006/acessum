@@ -1,14 +1,14 @@
 # SPEC-006: Consulta de Disponibilidade
 
-**Status:** Concluída  
-**Objetivo:** Apresentar horários disponíveis e ocupados de um laboratório num determinado período.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Apresentar horários disponíveis e ocupados de um laboratório em determinado período.<br>
 **Atores:** Aluno, Professor.
 
 ## 1. Regras de Negócio e Modelagem
-* **Transparência (RB-01, RB-02):** O sistema cruza reservas do laboratório selecionado para calcular lacunas livres dentro do intervalo solicitado.
+* **Transparência:** O sistema cruza reservas do laboratório selecionado para calcular lacunas livres dentro do intervalo solicitado.
 * **Reservas bloqueantes:** Apenas reservas com status `APROVADA` ou `EM_USO` bloqueiam a agenda. Reservas `PENDENTE` não são apresentadas como ocupadas.
-* **MVP:** A reserva é feita ao nível do laboratório; os equipamentos são apresentados com o respetivo laboratório e não possuem agenda independente nesta etapa.
-* **Leitura Apenas:** Esta spec não altera estado nem cria reservas.
+* **MVP:** A reserva é feita ao nível do laboratório; os equipamentos são apresentados com o respectivo laboratório e não possuem agenda independente nesta etapa.
+* **Somente leitura:** esta SPEC não altera estado nem cria reservas.
 * **Dependência:** Exige a existência dos recursos (SPEC-005).
 
 ## 2. Especificação da API
@@ -22,3 +22,9 @@
 * **Componente:** `ConsultaDisponibilidade.jsx`, integrado como seção no card do laboratório em `ConsultaRecursos.jsx`.
 * **Datas:** Inputs nativos `datetime-local`; o frontend converte os valores locais para UTC ISO-8601 ao enviar a consulta.
 * **Layout:** Cards de horários ocupados em cinza e horários livres em verde, com estados de erro e carregamento.
+
+**Contrato:** `DisponibilidadeResponse` contém recurso, intervalo consultado e listas de `BlocoDisponibilidade` livres/ocupados. Componentes: `ConsultaDisponibilidade.jsx` e `ConsultaRecursos.jsx`.
+
+## 4. Extensão — SPEC-028
+
+A grade semanal complementa esta consulta sem alterar seus critérios: considera somente reservas aprovadas/em uso, não infere horários de funcionamento e apresenta o intervalo de sete dias em `GET /api/reservas/grade-semanal`.

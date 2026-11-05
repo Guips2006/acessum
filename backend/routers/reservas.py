@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from auth_utils import exigir_perfil, obter_usuario_logado
 from auditoria_service import registrar_log
 from database import get_db
-from notificacoes_service import criar_notificacao
+from notificacoes_service import criar_notificacao, criar_notificacoes_co_reservantes
 from reservas_lifecycle import registrar_no_show
 import models
 import schemas
@@ -38,11 +38,17 @@ def serializar_reserva_analise(reserva: models.Reserva) -> schemas.ReservaAnalis
         finalidade=reserva.finalidade,
         status=reserva.status,
         motivo_recusa=reserva.motivo_recusa,
+        co_reservantes=[
+            schemas.CoReservanteResponse(id=item.usuario.id, nome=item.usuario.nome)
+            for item in reserva.co_reservantes
+        ],
     )
 
 
 def serializar_reserva_historico(reserva: models.Reserva) -> schemas.ReservaHistoricoResponse:
     return schemas.ReservaHistoricoResponse(
+        usuario_id=reserva.usuario_id,
+        usuario_nome=reserva.usuario.nome,
         id=reserva.id,
         laboratorio_id=reserva.laboratorio_id,
         laboratorio_nome=reserva.laboratorio.nome,
@@ -56,6 +62,10 @@ def serializar_reserva_historico(reserva: models.Reserva) -> schemas.ReservaHist
             if reserva.data_fim_real is not None
             else None
         ),
+        co_reservantes=[
+            schemas.CoReservanteResponse(id=item.usuario.id, nome=item.usuario.nome)
+            for item in reserva.co_reservantes
+        ],
     )
 
 
@@ -138,6 +148,26 @@ def consultar_disponibilidade(
 
 
 @router.get(
+    "/grade-semanal",
+    response_model=schemas.DisponibilidadeResponse,
+    dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
+)
+def consultar_grade_semanal(
+    recurso_id: str = Query(min_length=1, max_length=36),
+    semana_inicio: datetime = Query(),
+    db: Session = Depends(get_db),
+):
+    inicio = normalizar_utc(semana_inicio, "semana_inicio")
+    fim = inicio + timedelta(days=7)
+    return consultar_disponibilidade(
+        recurso_id=recurso_id,
+        data_inicio=inicio.replace(tzinfo=timezone.utc),
+        data_fim=fim.replace(tzinfo=timezone.utc),
+        db=db,
+    )
+
+
+@router.get(
     "/minhas-reservas",
     response_model=list[schemas.ReservaHistoricoResponse],
     dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
@@ -149,8 +179,19 @@ def listar_minhas_reservas(
     """Lista somente as reservas pertencentes ao utilizador autenticado."""
     reservas = (
         db.query(models.Reserva)
-        .options(joinedload(models.Reserva.laboratorio))
-        .filter(models.Reserva.usuario_id == usuario.id)
+        .options(
+            joinedload(models.Reserva.laboratorio),
+            joinedload(models.Reserva.usuario),
+            selectinload(models.Reserva.co_reservantes).joinedload(
+                models.ReservaCoReservante.usuario
+            ),
+        )
+        .filter(
+            (models.Reserva.usuario_id == usuario.id)
+            | models.Reserva.co_reservantes.any(
+                models.ReservaCoReservante.usuario_id == usuario.id
+            )
+        )
         .order_by(models.Reserva.data_inicio.desc(), models.Reserva.id)
         .all()
     )
@@ -169,6 +210,9 @@ def listar_reservas_pendentes(db: Session = Depends(get_db)):
         .options(
             joinedload(models.Reserva.usuario),
             joinedload(models.Reserva.laboratorio),
+            selectinload(models.Reserva.co_reservantes).joinedload(
+                models.ReservaCoReservante.usuario
+            ),
         )
         .filter(models.Reserva.status == "PENDENTE")
         .order_by(models.Reserva.data_inicio, models.Reserva.id)
@@ -194,6 +238,9 @@ def analisar_reserva(
         .options(
             joinedload(models.Reserva.usuario),
             joinedload(models.Reserva.laboratorio),
+            selectinload(models.Reserva.co_reservantes).joinedload(
+                models.ReservaCoReservante.usuario
+            ),
         )
         .filter(models.Reserva.id == reserva_id)
         .first()
@@ -246,6 +293,16 @@ def analisar_reserva(
             titulo="Reserva aprovada" if aprovada else "Reserva recusada",
             mensagem=(
                 f"Sua reserva em {reserva.laboratorio.nome} foi "
+                f"{'aprovada' if aprovada else 'recusada'}."
+            ),
+        )
+        criar_notificacoes_co_reservantes(
+            db,
+            reserva=reserva,
+            tipo="RESERVA_APROVADA" if aprovada else "RESERVA_RECUSADA",
+            titulo="Reserva aprovada" if aprovada else "Reserva recusada",
+            mensagem=(
+                f"A reserva em {reserva.laboratorio.nome} da qual você participa foi "
                 f"{'aprovada' if aprovada else 'recusada'}."
             ),
         )
@@ -506,6 +563,33 @@ def solicitar_reserva(
             detail="Não é possível reservar um laboratório inativo.",
         )
 
+    if dados.co_reservante_ids and usuario.perfil != "ALUNO":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Somente alunos podem incluir co-reservantes.",
+        )
+    if usuario.id in dados.co_reservante_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="O solicitante não pode ser incluído como co-reservante.",
+        )
+    co_reservantes = []
+    if dados.co_reservante_ids:
+        co_reservantes = (
+            db.query(models.Usuario)
+            .filter(
+                models.Usuario.id.in_(dados.co_reservante_ids),
+                models.Usuario.perfil == "ALUNO",
+                models.Usuario.status == "ATIVO",
+            )
+            .all()
+        )
+        if len(co_reservantes) != len(dados.co_reservante_ids):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Selecione apenas alunos ativos encontrados no sistema.",
+            )
+
     conflito = (
         db.query(models.Reserva.id)
         .filter(
@@ -531,8 +615,32 @@ def solicitar_reserva(
         status="PENDENTE",
     )
     db.add(reserva)
-    db.commit()
-    db.refresh(reserva)
+    try:
+        db.flush()
+        db.add_all(
+            models.ReservaCoReservante(
+                reserva_id=reserva.id,
+                usuario_id=co_reservante.id,
+            )
+            for co_reservante in co_reservantes
+        )
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A solicitação não pôde ser registrada com os co-reservantes selecionados.",
+        ) from exc
+    reserva = (
+        db.query(models.Reserva)
+        .options(
+            selectinload(models.Reserva.co_reservantes).joinedload(
+                models.ReservaCoReservante.usuario
+            )
+        )
+        .filter(models.Reserva.id == reserva.id)
+        .first()
+    )
 
     return schemas.ReservaResponse(
         id=reserva.id,
@@ -543,4 +651,8 @@ def solicitar_reserva(
         data_fim=reserva.data_fim.replace(tzinfo=timezone.utc),
         finalidade=reserva.finalidade,
         status=reserva.status,
+        co_reservantes=[
+            schemas.CoReservanteResponse(id=item.usuario.id, nome=item.usuario.nome)
+            for item in reserva.co_reservantes
+        ],
     )

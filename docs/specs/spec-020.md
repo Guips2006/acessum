@@ -1,7 +1,7 @@
 # SPEC-020: Log de Auditoria
 
-**Status:** Concluída  
-**Objetivo:** Registrar e consultar ações críticas do sistema com autoria e contexto.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Registrar e consultar ações críticas do sistema com autoria e contexto.<br>
 **Atores:** Administrador (consulta); usuários autenticados que executam ações auditáveis (registro automático).
 
 ## 1. Regras de negócio
@@ -31,3 +31,5 @@
 - Confirmar cada ação crítica com o ator correto e a data UTC.
 - Confirmar rollback sem log para operações inválidas.
 - Confirmar `403` para perfis não administrativos, filtros/paginação e preservação dos registros após reaplicar migrações.
+
+**Contrato e interface:** `GET /api/auditoria` recebe filtros e paginação e retorna `ListaLogsAuditoriaResponse`, composto por `LogAuditoriaResponse`. Interface em `Auditoria.jsx`, integrada em `App.jsx`.

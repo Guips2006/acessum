@@ -42,6 +42,20 @@ def serializar_notificacao(notificacao: models.Notificacao) -> NotificacaoRespon
     )
 
 
+def serializar_notificacao_grupo(
+    notificacao: models.NotificacaoGrupo,
+) -> NotificacaoResponse:
+    return NotificacaoResponse(
+        id=notificacao.id,
+        reserva_id=notificacao.reserva_id,
+        tipo=notificacao.tipo,
+        titulo=notificacao.titulo,
+        mensagem=notificacao.mensagem,
+        criada_em=notificacao.criada_em.replace(tzinfo=timezone.utc),
+        lida=notificacao.lida,
+    )
+
+
 def serializar_notificacao_conta(notificacao: models.NotificacaoConta) -> NotificacaoResponse:
     return NotificacaoResponse(
         id=notificacao.id,
@@ -71,6 +85,19 @@ def listar_notificacoes(
         .all()
         )
     ]
+    consulta_grupo = db.query(models.NotificacaoGrupo).filter(
+        models.NotificacaoGrupo.usuario_id == usuario.id
+    )
+    nao_lidas += consulta_grupo.filter(
+        models.NotificacaoGrupo.lida.is_(False)
+    ).count()
+    notificacoes.extend(
+        serializar_notificacao_grupo(notificacao)
+        for notificacao in consulta_grupo.order_by(
+            models.NotificacaoGrupo.criada_em.desc(),
+            models.NotificacaoGrupo.id.desc(),
+        ).limit(50).all()
+    )
     if usuario.perfil == "ADMINISTRADOR":
         consulta_conta = db.query(models.NotificacaoConta).filter(
             models.NotificacaoConta.destinatario_id == usuario.id
@@ -113,6 +140,14 @@ def marcar_todas_como_lidas(
             )
             .update({"lida": True}, synchronize_session=False)
         )
+    atualizadas += (
+        db.query(models.NotificacaoGrupo)
+        .filter(
+            models.NotificacaoGrupo.usuario_id == usuario.id,
+            models.NotificacaoGrupo.lida.is_(False),
+        )
+        .update({"lida": True}, synchronize_session=False)
+    )
     db.commit()
     return NotificacoesLidasResponse(atualizadas=atualizadas)
 
@@ -132,6 +167,19 @@ def marcar_como_lida(
         .first()
     )
     if notificacao is None:
+        notificacao_grupo = (
+            db.query(models.NotificacaoGrupo)
+            .filter(
+                models.NotificacaoGrupo.id == notificacao_id,
+                models.NotificacaoGrupo.usuario_id == usuario.id,
+            )
+            .first()
+        )
+        if notificacao_grupo is not None:
+            notificacao_grupo.lida = True
+            db.commit()
+            db.refresh(notificacao_grupo)
+            return serializar_notificacao_grupo(notificacao_grupo)
         if usuario.perfil == "ADMINISTRADOR":
             notificacao_conta = (
                 db.query(models.NotificacaoConta)

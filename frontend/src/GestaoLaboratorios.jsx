@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { formatarStatus } from './utils/formatarStatus';
 
 export default function GestaoLaboratorios({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -58,7 +59,7 @@ export default function GestaoLaboratorios({ voltar }) {
     setLaboratorioEmAtualizacao(laboratorio.id);
     try {
       const response = await api.patch(`/api/laboratorios/${laboratorio.id}/status`);
-      setSucesso(`Status do laboratório atualizado para ${response.data.novo_status}.`);
+      setSucesso(`Status do laboratório atualizado para ${formatarStatus(response.data.novo_status)}.`);
       await carregarLaboratorios();
     } catch (err) {
       setErro(err.response?.data?.detail || 'Erro ao alterar status do laboratório.');
@@ -109,7 +110,7 @@ export default function GestaoLaboratorios({ voltar }) {
             />
           </label>
           <button type="submit" disabled={salvando} aria-busy={salvando} style={estiloBotaoPrimario}>
-            {salvando ? <LoadingSpinner label="A guardar..." inline /> : 'Salvar laboratório'}
+            {salvando ? <LoadingSpinner label="Salvando..." inline /> : 'Salvar laboratório'}
           </button>
         </form>
       </div>
@@ -117,7 +118,7 @@ export default function GestaoLaboratorios({ voltar }) {
       <section aria-labelledby="lista-laboratorios-titulo">
         <h3 id="lista-laboratorios-titulo">Laboratórios cadastrados</h3>
         {carregando ? (
-          <LoadingSpinner label="A carregar laboratórios..." />
+          <LoadingSpinner label="Carregando laboratórios..." />
         ) : laboratorios.length === 0 ? (
           <p>Nenhum laboratório cadastrado.</p>
         ) : (
@@ -130,7 +131,7 @@ export default function GestaoLaboratorios({ voltar }) {
                 <h4 style={{ margin: '0 0 8px' }}>{laboratorio.nome}</h4>
                 <p style={{ margin: '4px 0' }}>Capacidade: {laboratorio.capacidade} lugares</p>
                 <p style={{ margin: '4px 0 12px', color: laboratorio.status === 'ATIVO' ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
-                  Status: {laboratorio.status}
+                  Status: {formatarStatus(laboratorio.status)}
                 </p>
                 <button
                   type="button"
@@ -143,7 +144,7 @@ export default function GestaoLaboratorios({ voltar }) {
                   }}
                 >
                   {laboratorioEmAtualizacao === laboratorio.id
-                    ? <LoadingSpinner label="A atualizar..." inline />
+                    ? <LoadingSpinner label="Atualizando..." inline />
                     : laboratorio.status === 'ATIVO' ? 'Inativar laboratório' : 'Ativar laboratório'}
                 </button>
               </article>

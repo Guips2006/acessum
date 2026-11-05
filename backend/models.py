@@ -109,6 +109,54 @@ class Reserva(Base):
     data_no_show = Column(DateTime, nullable=True)
     laboratorio = relationship("Laboratorio", back_populates="reservas")
     usuario = relationship("Usuario")
+    co_reservantes = relationship(
+        "ReservaCoReservante",
+        back_populates="reserva",
+        cascade="all, delete-orphan",
+    )
+
+
+class FavoritoUsuario(Base):
+    __tablename__ = "favoritos_usuarios"
+    __table_args__ = (
+        Index("ix_favoritos_usuarios_usuario", "usuario_id"),
+    )
+
+    usuario_id = Column(
+        String(36),
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    laboratorio_id = Column(
+        String(36),
+        ForeignKey("laboratorios.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    usuario = relationship("Usuario")
+    laboratorio = relationship("Laboratorio")
+
+
+class ReservaCoReservante(Base):
+    __tablename__ = "reserva_co_reservantes"
+    __table_args__ = (
+        Index("ix_reserva_co_reservantes_usuario", "usuario_id"),
+    )
+
+    reserva_id = Column(
+        String(36),
+        ForeignKey("reservas.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    usuario_id = Column(
+        String(36),
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    reserva = relationship("Reserva", back_populates="co_reservantes")
+    usuario = relationship("Usuario")
 
 
 class Notificacao(Base):
@@ -120,6 +168,32 @@ class Notificacao(Base):
             name="ck_notificacao_tipo_valido",
         ),
         Index("ix_notificacoes_usuario_lida_criada", "usuario_id", "lida", "criada_em"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    usuario_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    reserva_id = Column(String(36), ForeignKey("reservas.id"), nullable=False)
+    tipo = Column(String(30), nullable=False)
+    titulo = Column(String(120), nullable=False)
+    mensagem = Column(String(500), nullable=False)
+    criada_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+    lida = Column(Boolean, default=False, nullable=False, server_default="0")
+
+
+class NotificacaoGrupo(Base):
+    __tablename__ = "notificacoes_grupo"
+    __table_args__ = (
+        UniqueConstraint(
+            "reserva_id",
+            "usuario_id",
+            "tipo",
+            name="uq_notificacao_grupo_reserva_usuario_tipo",
+        ),
+        CheckConstraint(
+            "tipo IN ('RESERVA_APROVADA', 'RESERVA_RECUSADA', 'CHECKIN_30_MIN')",
+            name="ck_notificacao_grupo_tipo_valido",
+        ),
+        Index("ix_notificacoes_grupo_usuario_lida_criada", "usuario_id", "lida", "criada_em"),
     )
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))

@@ -1,7 +1,7 @@
 # SPEC-018: Exportação de Relatórios
 
-**Status:** Concluída  
-**Objetivo:** Exportar reservas filtradas em CSV ou PDF para análise e arquivamento.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Exportar reservas filtradas em CSV ou PDF para análise e arquivamento.<br>
 **Atores:** Administrador, Aluno e Professor.
 
 ## 1. Regras de negócio e acesso
@@ -25,6 +25,12 @@
 - Dashboard administrativo exporta o intervalo selecionado.
 - Histórico permite filtrar por datas e status e exportar o resultado com formato selecionável.
 - A interface indica o formato durante o processamento e mostra erro/sucesso sem limpar os filtros.
+
+## 3.1 API e contrato de arquivo
+
+- `GET /api/relatorios/reservas` exporta o escopo administrativo; `GET /api/relatorios/minhas-reservas` exporta o escopo do titular.
+- Parâmetros de consulta: `formato` (`csv` ou `pdf`), `data_inicio`, `data_fim` e `status`. A resposta é um arquivo com `Content-Disposition`, não um modelo JSON.
+- Componentes: exportação em `DashboardAdmin.jsx` e `HistoricoReservas.jsx`; os filtros e permissões são validados no backend.
 
 ## 4. Validação
 

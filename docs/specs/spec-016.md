@@ -1,7 +1,7 @@
 # SPEC-016: Penalidade por No-Show
 
-**Status:** Concluída  
-**Objetivo:** Suspender temporariamente Alunos após faltas recorrentes a reservas aprovadas.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Suspender temporariamente Alunos após faltas recorrentes a reservas aprovadas.<br>
 **Atores:** Aluno e sistema; o Administrador consulta o status na gestão de usuários.
 
 ## 1. Regras de negócio
@@ -27,3 +27,11 @@
 - Confirmar que Professor não é suspenso e que a expiração reavalia a janela móvel.
 - Confirmar que uma conta suspensa recebe `403` ao solicitar reserva, mas ainda pode autenticar e consultar o histórico.
 - Rodar a migração repetidamente e verificar preservação e backfill das reservas legadas.
+
+## 4. Extensão — SPEC-025 e SPEC-029
+
+O Dashboard exibe, em modo somente leitura, a contagem do titular na janela móvel para tornar o limite transparente. Em reserva compartilhada, a falta e eventual suspensão continuam atribuídas somente ao titular; co-reservantes não alteram a regra de penalidade.
+
+## 5. Integração implementada
+
+A transição é processada pelo ciclo de reservas em `main.py` e por `reservas_lifecycle.py`, sem endpoint administrativo específico para aplicar a penalidade. A solicitação continua sendo `POST /api/reservas/` (`ReservaCriar`); o resumo é exposto por `GET /api/dashboard/aluno/resumo` (`DashboardAlunoResponse`). A interface apresenta o status em `DashboardAluno.jsx`; gestão de contas permanece em `GestaoUsuarios.jsx`.

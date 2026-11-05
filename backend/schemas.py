@@ -241,11 +241,55 @@ class DisponibilidadeResponse(BaseModel):
     blocos_livres: list[BlocoDisponibilidade]
     blocos_ocupados: list[BlocoDisponibilidade]
 
+
+class AlunoResumoResponse(BaseModel):
+    id: str
+    nome: str
+    email: str
+
+
+class CoReservanteResponse(BaseModel):
+    id: str
+    nome: str
+
+
+class FavoritoResponse(BaseModel):
+    id: str
+    nome: str
+    capacidade: int
+    status: Literal["ATIVO", "INATIVO"]
+
+
+class ReservaCheckinProximoResponse(BaseModel):
+    id: str
+    laboratorio_nome: str
+    data_inicio: datetime
+
+
+class DashboardAlunoResponse(BaseModel):
+    faltas_no_periodo: int
+    limite_no_show: int
+    faltas_restantes: int
+    status_conta: Literal["ATIVO", "SUSPENSO", "INATIVO"]
+    suspensao_ate: datetime | None
+    reservas_checkin: list[ReservaCheckinProximoResponse]
+
+
 class ReservaCriar(BaseModel):
     recurso_id: str = Field(min_length=1, max_length=36)
     data_inicio: datetime
     data_fim: datetime
     finalidade: str = Field(min_length=1, max_length=500)
+    co_reservante_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("co_reservante_ids")
+    @classmethod
+    def validar_co_reservantes_unicos(cls, ids: list[str]) -> list[str]:
+        if any(not item.strip() or len(item) > 36 for item in ids):
+            raise ValueError("Cada co-reservante deve ter um identificador válido.")
+        if len(ids) != len(set(ids)):
+            raise ValueError("Não repita co-reservantes na solicitação.")
+        return ids
 
     @field_validator("data_inicio", "data_fim")
     @classmethod
@@ -277,6 +321,7 @@ class ReservaResponse(BaseModel):
     data_fim: datetime
     finalidade: str
     status: Literal["PENDENTE", "APROVADA", "RECUSADA", "EM_USO", "CONCLUIDA", "CANCELADA", "NO_SHOW"]
+    co_reservantes: list[CoReservanteResponse] = Field(default_factory=list)
 
 class ReservaAnaliseAtualizar(BaseModel):
     status: Literal["APROVADA", "RECUSADA"]
@@ -301,8 +346,11 @@ class ReservaAnaliseResponse(BaseModel):
     finalidade: str
     status: Literal["PENDENTE", "APROVADA", "RECUSADA", "EM_USO", "CONCLUIDA", "CANCELADA", "NO_SHOW"]
     motivo_recusa: str | None
+    co_reservantes: list[CoReservanteResponse] = Field(default_factory=list)
 
 class ReservaHistoricoResponse(BaseModel):
+    usuario_id: str
+    usuario_nome: str
     id: str
     laboratorio_id: str
     laboratorio_nome: str
@@ -312,6 +360,7 @@ class ReservaHistoricoResponse(BaseModel):
     status: Literal["PENDENTE", "APROVADA", "RECUSADA", "EM_USO", "CONCLUIDA", "CANCELADA", "NO_SHOW"]
     motivo_recusa: str | None
     data_fim_real: datetime | None
+    co_reservantes: list[CoReservanteResponse] = Field(default_factory=list)
 
 class LaboratorioBase(BaseModel):
     nome: str = Field(min_length=1, max_length=100)

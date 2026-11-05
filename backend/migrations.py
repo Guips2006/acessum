@@ -100,6 +100,48 @@ def aplicar_migracoes(engine: Engine) -> None:
             "ON notificacoes (usuario_id, lida, criada_em)"
         )
         conexao.exec_driver_sql(
+            "CREATE TABLE IF NOT EXISTS favoritos_usuarios ("
+            "usuario_id VARCHAR(36) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE, "
+            "laboratorio_id VARCHAR(36) NOT NULL REFERENCES laboratorios(id) ON DELETE CASCADE, "
+            "criado_em DATETIME NOT NULL, "
+            "PRIMARY KEY (usuario_id, laboratorio_id)"
+            ")"
+        )
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_favoritos_usuarios_usuario "
+            "ON favoritos_usuarios (usuario_id)"
+        )
+        conexao.exec_driver_sql(
+            "CREATE TABLE IF NOT EXISTS reserva_co_reservantes ("
+            "reserva_id VARCHAR(36) NOT NULL REFERENCES reservas(id) ON DELETE CASCADE, "
+            "usuario_id VARCHAR(36) NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE, "
+            "PRIMARY KEY (reserva_id, usuario_id)"
+            ")"
+        )
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_reserva_co_reservantes_usuario "
+            "ON reserva_co_reservantes (usuario_id)"
+        )
+        conexao.exec_driver_sql(
+            "CREATE TABLE IF NOT EXISTS notificacoes_grupo ("
+            "id VARCHAR(36) PRIMARY KEY, "
+            "usuario_id VARCHAR(36) NOT NULL REFERENCES usuarios(id), "
+            "reserva_id VARCHAR(36) NOT NULL REFERENCES reservas(id), "
+            "tipo VARCHAR(30) NOT NULL CHECK (tipo IN "
+            "('RESERVA_APROVADA', 'RESERVA_RECUSADA', 'CHECKIN_30_MIN')), "
+            "titulo VARCHAR(120) NOT NULL, "
+            "mensagem VARCHAR(500) NOT NULL, "
+            "criada_em DATETIME NOT NULL, "
+            "lida BOOLEAN NOT NULL DEFAULT 0, "
+            "CONSTRAINT uq_notificacao_grupo_reserva_usuario_tipo "
+            "UNIQUE (reserva_id, usuario_id, tipo)"
+            ")"
+        )
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_notificacoes_grupo_usuario_lida_criada "
+            "ON notificacoes_grupo (usuario_id, lida, criada_em)"
+        )
+        conexao.exec_driver_sql(
             "CREATE TABLE IF NOT EXISTS logs_auditoria ("
             "id VARCHAR(36) PRIMARY KEY, "
             "usuario_id VARCHAR(36) NOT NULL REFERENCES usuarios(id), "

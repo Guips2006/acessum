@@ -4,9 +4,11 @@ import LoadingSpinner from './components/LoadingSpinner';
 import RelatarProblema from './RelatarProblema';
 import ConsultaDisponibilidade from './ConsultaDisponibilidade';
 import SolicitarReserva from './SolicitarReserva';
+import GradeSemanal from './GradeSemanal';
+import { formatarStatus } from './utils/formatarStatus';
 
 export default function ConsultaRecursos({ voltar }) {
-  const { api } = useContext(AuthContext);
+  const { api, user } = useContext(AuthContext);
   const [laboratorios, setLaboratorios] = useState([]);
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(true);
@@ -14,6 +16,10 @@ export default function ConsultaRecursos({ voltar }) {
   const [laboratorioEmConsulta, setLaboratorioEmConsulta] = useState(null);
   const [laboratorioParaReserva, setLaboratorioParaReserva] = useState(null);
   const [reservaEnviada, setReservaEnviada] = useState('');
+  const [favoritos, setFavoritos] = useState(() => new Set());
+  const [favoritoEmAtualizacao, setFavoritoEmAtualizacao] = useState(null);
+  const [erroFavoritos, setErroFavoritos] = useState('');
+  const [laboratorioNaGrade, setLaboratorioNaGrade] = useState(null);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -31,8 +37,50 @@ export default function ConsultaRecursos({ voltar }) {
     carregarDados();
   }, [api]);
 
+  useEffect(() => {
+    if (!['ALUNO', 'PROFESSOR'].includes(user.perfil)) return;
+    let ativa = true;
+    api.get('/api/favoritos')
+      .then(response => {
+        if (ativa) setFavoritos(new Set(response.data.map(favorito => favorito.id)));
+      })
+      .catch(err => {
+        if (ativa) {
+          setErroFavoritos(err.response?.data?.detail || 'Não foi possível carregar seus favoritos.');
+        }
+      });
+    return () => { ativa = false; };
+  }, [api, user.perfil]);
+
+  const alternarFavorito = async (laboratorio) => {
+    setErroFavoritos('');
+    setFavoritoEmAtualizacao(laboratorio.id);
+    try {
+      if (favoritos.has(laboratorio.id)) {
+        await api.delete(`/api/favoritos/${laboratorio.id}`);
+        setFavoritos(atual => {
+          const proximos = new Set(atual);
+          proximos.delete(laboratorio.id);
+          return proximos;
+        });
+      } else {
+        await api.put(`/api/favoritos/${laboratorio.id}`);
+        setFavoritos(atual => new Set(atual).add(laboratorio.id));
+      }
+    } catch (err) {
+      setErroFavoritos(err.response?.data?.detail || 'Não foi possível atualizar seus favoritos.');
+    } finally {
+      setFavoritoEmAtualizacao(null);
+    }
+  };
+
+  const laboratoriosOrdenados = [
+    ...laboratorios.filter(laboratorio => favoritos.has(laboratorio.id)),
+    ...laboratorios.filter(laboratorio => !favoritos.has(laboratorio.id)),
+  ];
+
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="resource-view">
       <button
         type="button"
         onClick={voltar}
@@ -42,36 +90,61 @@ export default function ConsultaRecursos({ voltar }) {
       </button>
       <h2>Recursos Disponíveis</h2>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
+      {erroFavoritos && <p className="feedback feedback-error" role="alert">{erroFavoritos}</p>}
 
       {carregando ? (
-        <LoadingSpinner label="A carregar recursos..." />
+        <LoadingSpinner label="Carregando recursos..." />
       ) : erro ? null : laboratorios.length === 0 ? (
         <p>Nenhum laboratório cadastrado no momento.</p>
       ) : (
         <div style={{ display: 'grid', gap: '16px' }}>
-          {laboratorios.map(lab => {
+          {laboratoriosOrdenados.map(lab => {
             const equipamentos = lab.equipamentos || [];
 
           return (
             <article
               key={lab.id}
-              style={{ padding: '18px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+              className="resource-card"
             >
-              <h3 style={{ margin: '0 0 10px', color: lab.status === 'ATIVO' ? '#333333' : '#777777' }}>
-                {lab.nome}
-                <span style={{ fontSize: '14px', marginLeft: '10px', color: lab.status === 'ATIVO' ? '#28a745' : '#dc3545' }}>
-                  {lab.status}
-                </span>
-              </h3>
+              <div className="resource-card-heading">
+                <h3>
+                  {lab.nome}
+                  <span className={`resource-status ${lab.status === 'ATIVO' ? 'is-active' : 'is-inactive'}`}>
+                    {lab.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
+                  </span>
+                </h3>
+                {['ALUNO', 'PROFESSOR'].includes(user.perfil) && (
+                  <button
+                    type="button"
+                    className={`favorite-toggle${favoritos.has(lab.id) ? ' is-favorite' : ''}`}
+                    onClick={() => alternarFavorito(lab)}
+                    disabled={favoritoEmAtualizacao === lab.id}
+                    aria-label={`${favoritos.has(lab.id) ? 'Remover' : 'Adicionar'} ${lab.nome} ${favoritos.has(lab.id) ? 'dos' : 'aos'} favoritos`}
+                    aria-pressed={favoritos.has(lab.id)}
+                    aria-busy={favoritoEmAtualizacao === lab.id}
+                  >
+                    {favoritos.has(lab.id) ? '★' : '☆'}
+                  </button>
+                )}
+              </div>
               <p style={{ margin: '0 0 15px', fontSize: '14px' }}>Capacidade: {lab.capacidade} lugares</p>
               {lab.status === 'ATIVO' && (
-                <button
-                  type="button"
-                  onClick={() => setLaboratorioEmConsulta(laboratorioEmConsulta === lab.id ? null : lab.id)}
-                  style={estiloBotaoDisponibilidade}
-                >
-                  {laboratorioEmConsulta === lab.id ? 'Fechar disponibilidade' : 'Consultar disponibilidade'}
-                </button>
+                <div className="resource-actions">
+                  <button
+                    type="button"
+                    className="button-secondary"
+                    onClick={() => setLaboratorioEmConsulta(laboratorioEmConsulta === lab.id ? null : lab.id)}
+                  >
+                    {laboratorioEmConsulta === lab.id ? 'Fechar disponibilidade' : 'Consultar disponibilidade'}
+                  </button>
+                  <button
+                    type="button"
+                    className="button-secondary"
+                    onClick={() => setLaboratorioNaGrade(lab)}
+                  >
+                    Ver grade semanal
+                  </button>
+                </div>
               )}
               {laboratorioEmConsulta === lab.id && (
                 <ConsultaDisponibilidade laboratorio={lab} />
@@ -79,11 +152,11 @@ export default function ConsultaRecursos({ voltar }) {
               {lab.status === 'ATIVO' && (
                 <button
                   type="button"
+                  className="button-primary resource-reserve-button"
                   onClick={() => {
                     setReservaEnviada('');
                     setLaboratorioParaReserva(laboratorioParaReserva === lab.id ? null : lab.id);
                   }}
-                  style={{ ...estiloBotaoDisponibilidade, marginTop: '8px' }}
                 >
                   {laboratorioParaReserva === lab.id ? 'Fechar formulário' : 'Solicitar reserva'}
                 </button>
@@ -94,7 +167,7 @@ export default function ConsultaRecursos({ voltar }) {
                   fechar={() => setLaboratorioParaReserva(null)}
                   solicitada={reserva => {
                     setLaboratorioParaReserva(null);
-                    setReservaEnviada(`Solicitação registada para ${reserva.laboratorio_nome} com status ${reserva.status}.`);
+                    setReservaEnviada(`Solicitação registrada para ${reserva.laboratorio_nome} com status ${formatarStatus(reserva.status)}.`);
                   }}
                 />
               )}
@@ -128,7 +201,7 @@ export default function ConsultaRecursos({ voltar }) {
                       <strong>{equipamento.nome}</strong>
                       {equipamento.descricao && <span> — {equipamento.descricao}</span>}
                       <span style={{ display: 'block', marginTop: '4px', color: equipamento.status === 'ATIVO' ? '#28a745' : '#dc3545' }}>
-                        {equipamento.status}
+                        {equipamento.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
                       </span>
                       <button
                         type="button"
@@ -154,6 +227,12 @@ export default function ConsultaRecursos({ voltar }) {
           })}
         </div>
       )}
+      {laboratorioNaGrade && (
+        <GradeSemanal
+          laboratorio={laboratorioNaGrade}
+          fechar={() => setLaboratorioNaGrade(null)}
+        />
+      )}
     </section>
   );
 }
@@ -163,16 +242,6 @@ const estiloBotaoProblema = {
   color: '#ffffff',
   backgroundColor: '#9a5700',
   border: '1px solid #874b00',
-  borderRadius: '8px',
-  cursor: 'pointer',
-};
-
-const estiloBotaoDisponibilidade = {
-  marginRight: '8px',
-  padding: '8px 12px',
-  color: '#ffffff',
-  backgroundColor: '#0056b3',
-  border: 'none',
   borderRadius: '8px',
   cursor: 'pointer',
 };

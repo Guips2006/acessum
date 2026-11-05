@@ -1,12 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { formatarStatus } from './utils/formatarStatus';
 
 function formatarData(valor) {
-  return new Date(valor).toLocaleString();
+  return new Date(valor).toLocaleString('pt-BR');
 }
 
-export default function AnalisarReservas({ voltar }) {
+export default function AnalisarReservas({ voltar, onPendentesChange }) {
   const { api } = useContext(AuthContext);
   const [reservas, setReservas] = useState([]);
   const [motivos, setMotivos] = useState({});
@@ -21,6 +22,7 @@ export default function AnalisarReservas({ voltar }) {
     try {
       const response = await api.get('/api/reservas/pendentes');
       setReservas(response.data);
+      onPendentesChange(response.data.length);
     } catch (err) {
       setErro(err.response?.data?.detail || 'Erro ao carregar solicitações pendentes.');
     } finally {
@@ -30,7 +32,7 @@ export default function AnalisarReservas({ voltar }) {
 
   useEffect(() => {
     carregarReservas();
-  }, [api]);
+  }, [api, onPendentesChange]);
 
   const decidirReserva = async (reserva, novoStatus) => {
     setErro('');
@@ -68,7 +70,7 @@ export default function AnalisarReservas({ voltar }) {
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
       {carregando ? (
-        <LoadingSpinner label="A carregar solicitações..." />
+        <LoadingSpinner label="Carregando solicitações..." />
       ) : reservas.length === 0 ? (
         <p>Não há solicitações aguardando análise.</p>
       ) : (
@@ -80,11 +82,16 @@ export default function AnalisarReservas({ voltar }) {
             >
               <h3 style={{ margin: '0 0 8px' }}>{reserva.laboratorio_nome}</h3>
               <p style={{ margin: '4px 0' }}>Solicitante: {reserva.usuario_nome}</p>
+              {reserva.co_reservantes?.length > 0 && (
+                <p style={{ margin: '4px 0' }}>
+                  Co-reservantes: {reserva.co_reservantes.map(coReservante => coReservante.nome).join(', ')}
+                </p>
+              )}
               <p style={{ margin: '4px 0' }}>Início: {formatarData(reserva.data_inicio)}</p>
               <p style={{ margin: '4px 0' }}>Fim: {formatarData(reserva.data_fim)}</p>
               <p style={{ margin: '4px 0' }}>Finalidade: {reserva.finalidade}</p>
               <p style={{ margin: '4px 0 12px', color: '#9a5700', fontWeight: 'bold' }}>
-                Status: {reserva.status}
+                Status: {formatarStatus(reserva.status)}
               </p>
               <label>
                 Motivo da recusa (opcional)
@@ -104,7 +111,7 @@ export default function AnalisarReservas({ voltar }) {
                   aria-busy={reservaEmAnalise === reserva.id}
                   style={{ ...estiloBotao, backgroundColor: '#28a745' }}
                 >
-                  {reservaEmAnalise === reserva.id ? <LoadingSpinner label="A processar..." inline /> : 'Aprovar'}
+                  {reservaEmAnalise === reserva.id ? <LoadingSpinner label="Processando..." inline /> : 'Aprovar'}
                 </button>
                 <button
                   type="button"
@@ -113,7 +120,7 @@ export default function AnalisarReservas({ voltar }) {
                   aria-busy={reservaEmAnalise === reserva.id}
                   style={{ ...estiloBotao, backgroundColor: '#dc3545' }}
                 >
-                  {reservaEmAnalise === reserva.id ? <LoadingSpinner label="A processar..." inline /> : 'Recusar'}
+                  {reservaEmAnalise === reserva.id ? <LoadingSpinner label="Processando..." inline /> : 'Recusar'}
                 </button>
               </div>
             </article>

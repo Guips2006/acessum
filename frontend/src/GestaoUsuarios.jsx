@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { formatarPerfil, formatarStatus } from './utils/formatarStatus';
 
 export default function GestaoUsuarios({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -95,7 +96,7 @@ export default function GestaoUsuarios({ voltar }) {
     setUsuarioEmAtualizacao(usuario.id);
     try {
       const response = await api.patch(`/api/usuarios/${usuario.id}/status`);
-      setSucesso(`Status atualizado para ${response.data.novo_status}.`);
+      setSucesso(`Status atualizado para ${formatarStatus(response.data.novo_status)}.`);
       await carregarUsuarios();
     } catch (err) {
       setErro(err.response?.data?.detail || 'Erro ao alterar status do usuário.');
@@ -217,7 +218,7 @@ export default function GestaoUsuarios({ voltar }) {
             aria-busy={salvando}
             style={estiloBotaoPrimario}
           >
-            {salvando ? <LoadingSpinner label="A guardar..." inline /> : 'Cadastrar usuário'}
+            {salvando ? <LoadingSpinner label="Salvando..." inline /> : 'Cadastrar usuário'}
           </button>
         </form>
       </div>
@@ -258,7 +259,7 @@ export default function GestaoUsuarios({ voltar }) {
       <section aria-labelledby="lista-usuarios-titulo">
         <h3 id="lista-usuarios-titulo">Usuários cadastrados</h3>
         {carregando ? (
-          <LoadingSpinner label="A carregar usuários..." />
+          <LoadingSpinner label="Carregando usuários..." />
         ) : usuarios.length === 0 ? (
           <p>Nenhum usuário cadastrado.</p>
         ) : (
@@ -270,9 +271,9 @@ export default function GestaoUsuarios({ voltar }) {
               >
                 <h4 style={{ margin: '0 0 8px' }}>{usuario.nome}</h4>
                 <p style={{ margin: '4px 0' }}>{usuario.email}</p>
-                <p style={{ margin: '4px 0' }}>Perfil: {usuario.perfil}</p>
+                <p style={{ margin: '4px 0' }}>Perfil: {formatarPerfil(usuario.perfil)}</p>
                 <p style={{ margin: '4px 0 12px', color: usuario.status === 'ATIVO' ? '#28a745' : usuario.status === 'SUSPENSO' ? '#a96b0a' : '#dc3545', fontWeight: 'bold' }}>
-                  Status: {usuario.status}
+                  Status: {formatarStatus(usuario.status)}
                   {usuario.suspensao_ate && ` até ${new Date(usuario.suspensao_ate).toLocaleString('pt-BR')}`}
                 </p>
                 <button
@@ -286,7 +287,7 @@ export default function GestaoUsuarios({ voltar }) {
                   }}
                 >
                   {usuarioEmAtualizacao === usuario.id
-                    ? <LoadingSpinner label="A atualizar..." inline />
+                    ? <LoadingSpinner label="Atualizando..." inline />
                     : usuario.status === 'INATIVO' ? 'Ativar acesso' : 'Inativar acesso'}
                 </button>
               </article>

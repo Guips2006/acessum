@@ -1,7 +1,7 @@
 # SPEC-014: Preferências de Acessibilidade e Indicadores de Carregamento
 
-**Status:** Concluída  
-**Objetivo:** Permitir que cada pessoa ajuste a apresentação visual do Acessum e receba feedback consistente durante operações assíncronas.  
+**Status:** CONCLUÍDO<br>
+**Objetivo:** Permitir que cada pessoa ajuste a apresentação visual do Acessum e receba feedback consistente durante operações assíncronas.<br>
 **Atores:** Aluno, Professor e Administrador.
 
 ## 1. Regras e critérios de aceitação
@@ -28,3 +28,7 @@
 - Verificar persistência após recarregar e combinação independente dos dois controles.
 - Verificar foco visível, operação por teclado e anúncio do estado de carregamento.
 - Confirmar que listas, formulários, feedbacks e ações existentes continuam funcionais nos três modos visuais.
+
+## 4. Implementação
+
+Não há endpoint nem schema de API para as preferências; elas ficam no navegador. A interface é implementada por `ThemeContext.jsx`, `Configuracoes.jsx`, `LoadingSpinner.jsx` e tokens/regras em `styles.css`.

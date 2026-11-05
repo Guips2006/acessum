@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useContext, useState } from 'react';
+import React, { Suspense, lazy, useContext, useEffect, useRef, useState } from 'react';
 import { ChevronDown, Eye, EyeOff, FlaskConical, LogOut, Settings, UserRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -11,8 +11,11 @@ import GestaoEquipamentos from './GestaoEquipamentos';
 import GestaoProblemas from './GestaoProblemas';
 import AnalisarReservas from './AnalisarReservas';
 import HistoricoReservas from './HistoricoReservas';
+import FavoritosProfessor from './FavoritosProfessor';
 import SininhoNotificacoes from './SininhoNotificacoes';
 import Auditoria from './Auditoria';
+import DashboardAluno from './DashboardAluno';
+import { formatarPerfil } from './utils/formatarStatus';
 
 const DashboardAdmin = lazy(() => import('./DashboardAdmin.jsx'));
 
@@ -31,7 +34,75 @@ export default function App() {
   const [solicitandoReset, setSolicitandoReset] = useState(false);
   const [resetSolicitado, setResetSolicitado] = useState(false);
   const [menuUsuarioAberto, setMenuUsuarioAberto] = useState(false);
+  const [solicitacoesPendentes, setSolicitacoesPendentes] = useState(0);
+  const [erroSolicitacoesPendentes, setErroSolicitacoesPendentes] = useState('');
   const [telaAtiva, setTelaAtiva] = useState('MENU'); // Controle de qual tela mostrar
+  const menuUsuarioRef = useRef(null);
+  const acionadorMenuUsuarioRef = useRef(null);
+
+  useEffect(() => {
+    if (user) {
+      setTelaAtiva('MENU');
+      setMenuUsuarioAberto(false);
+    }
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (!menuUsuarioAberto) return undefined;
+
+    const fecharAoClicarFora = (evento) => {
+      if (menuUsuarioRef.current && !menuUsuarioRef.current.contains(evento.target)) {
+        setMenuUsuarioAberto(false);
+      }
+    };
+
+    const fecharComEscape = (evento) => {
+      if (evento.key === 'Escape') {
+        setMenuUsuarioAberto(false);
+        acionadorMenuUsuarioRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', fecharAoClicarFora);
+    document.addEventListener('keydown', fecharComEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', fecharAoClicarFora);
+      document.removeEventListener('keydown', fecharComEscape);
+    };
+  }, [menuUsuarioAberto]);
+
+  useEffect(() => {
+    if (user?.perfil !== 'PROFESSOR') {
+      setSolicitacoesPendentes(0);
+      setErroSolicitacoesPendentes('');
+      return undefined;
+    }
+
+    let ativa = true;
+    const carregarSolicitacoesPendentes = async () => {
+      try {
+        const resposta = await api.get('/api/reservas/pendentes');
+        if (ativa) {
+          setSolicitacoesPendentes(resposta.data.length);
+          setErroSolicitacoesPendentes('');
+        }
+      } catch {
+        if (ativa) {
+          setErroSolicitacoesPendentes('Não foi possível verificar as solicitações pendentes.');
+        }
+      }
+    };
+
+    carregarSolicitacoesPendentes();
+    const intervalo = window.setInterval(carregarSolicitacoesPendentes, 30_000);
+    window.addEventListener('focus', carregarSolicitacoesPendentes);
+    return () => {
+      ativa = false;
+      window.clearInterval(intervalo);
+      window.removeEventListener('focus', carregarSolicitacoesPendentes);
+    };
+  }, [api, user?.perfil, telaAtiva]);
 
   if (loading) {
     return (
@@ -147,7 +218,24 @@ export default function App() {
             {['ALUNO', 'PROFESSOR'].includes(user.perfil) && navegacaoAluno.map(item => (
               navItem(item.tela, item.icon, item.label)
             ))}
-            {user.perfil === 'PROFESSOR' && navItem('ANALISAR_RESERVAS', '✓', 'Solicitações')}
+            {user.perfil === 'PROFESSOR' && (
+              <button
+                type="button"
+                className={`sidebar-link${telaAtiva === 'ANALISAR_RESERVAS' ? ' is-active' : ''}`}
+                onClick={() => setTelaAtiva('ANALISAR_RESERVAS')}
+                aria-label={`Solicitações${solicitacoesPendentes ? `, ${solicitacoesPendentes} pendentes` : ''}`}
+                title={erroSolicitacoesPendentes || (solicitacoesPendentes ? `${solicitacoesPendentes} solicitações pendentes` : 'Solicitações')}
+              >
+                <span className="sidebar-icon" aria-hidden="true">✓</span>
+                <span>Solicitações</span>
+                {solicitacoesPendentes > 0 && (
+                  <span className="sidebar-pending-dot" aria-hidden="true" />
+                )}
+                {erroSolicitacoesPendentes && (
+                  <span className="visually-hidden-label" role="status">{erroSolicitacoesPendentes}</span>
+                )}
+              </button>
+            )}
             {user.perfil === 'ADMINISTRADOR' && (
               <>
                 <div className="sidebar-section-label sidebar-section-spaced">Administração</div>
@@ -173,9 +261,10 @@ export default function App() {
               <SininhoNotificacoes />
               <span className={`status-indicator${user.status === 'SUSPENSO' ? ' is-suspended' : ''}`} />
               <span>{user.status === 'SUSPENSO' ? 'Conta suspensa' : 'Sessão ativa'}</span>
-              <div className="user-menu">
+              <div className="user-menu" ref={menuUsuarioRef}>
                 <button
                   type="button"
+                  ref={acionadorMenuUsuarioRef}
                   className="user-menu-trigger"
                   onClick={() => setMenuUsuarioAberto(atual => !atual)}
                   aria-expanded={menuUsuarioAberto}
@@ -187,7 +276,7 @@ export default function App() {
                   ) : (
                     <span className="topbar-avatar" aria-hidden="true">{user.nome?.charAt(0)?.toUpperCase() || 'U'}</span>
                   )}
-                  <span className="user-menu-copy"><strong>{user.nome}</strong><small>{user.perfil}</small></span>
+                  <span className="user-menu-copy"><strong>{user.nome}</strong><small>{formatarPerfil(user.perfil)}</small></span>
                   <ChevronDown size={16} aria-hidden="true" />
                 </button>
                 {menuUsuarioAberto && (
@@ -229,7 +318,10 @@ export default function App() {
               <Auditoria voltar={() => setTelaAtiva('MENU')} />
             )}
             {telaAtiva === 'ANALISAR_RESERVAS' && user.perfil === 'PROFESSOR' && (
-              <AnalisarReservas voltar={() => setTelaAtiva('MENU')} />
+              <AnalisarReservas
+                voltar={() => setTelaAtiva('MENU')}
+                onPendentesChange={setSolicitacoesPendentes}
+              />
             )}
             {telaAtiva === 'HISTORICO_RESERVAS' && ['ALUNO', 'PROFESSOR'].includes(user.perfil) && (
               <HistoricoReservas voltar={() => setTelaAtiva('MENU')} />
@@ -244,7 +336,14 @@ export default function App() {
               <MeuPerfil voltar={() => setTelaAtiva('MENU')} />
             )}
 
-            {telaAtiva === 'MENU' && (
+            {telaAtiva === 'MENU' && user.perfil === 'ALUNO' && (
+              <DashboardAluno
+                explorarRecursos={() => setTelaAtiva('CONSULTA_RECURSOS')}
+                verReservas={() => setTelaAtiva('HISTORICO_RESERVAS')}
+              />
+            )}
+
+            {telaAtiva === 'MENU' && user.perfil !== 'ALUNO' && (
               <section className="dashboard-view">
                 <div className="welcome-panel">
                   <div className="welcome-copy">
@@ -262,9 +361,9 @@ export default function App() {
                 <div className="section-heading">
                   <div>
                     <span className="eyebrow">ATALHOS</span>
-                    <h2>Aceda às suas tarefas</h2>
+                    <h2>Acesse suas tarefas</h2>
                   </div>
-                  <span className="profile-pill">{user.perfil}</span>
+                  <span className="profile-pill">{formatarPerfil(user.perfil)}</span>
                 </div>
 
                 <div className="dashboard-grid">
@@ -279,7 +378,7 @@ export default function App() {
                       <button type="button" className="dashboard-card" onClick={() => setTelaAtiva('HISTORICO_RESERVAS')}>
                         <span className="dashboard-card-icon icon-violet">▤</span>
                         <span className="dashboard-card-title">Minhas reservas</span>
-                        <span className="dashboard-card-description">Acompanhe pedidos, check-in e utilização em curso.</span>
+                        <span className="dashboard-card-description">Acompanhe pedidos, check-in e uso em andamento.</span>
                         <span className="dashboard-card-arrow">Abrir <span aria-hidden="true">↗</span></span>
                       </button>
                     </>
@@ -321,6 +420,11 @@ export default function App() {
                     </>
                   )}
                 </div>
+                {user.perfil === 'PROFESSOR' && (
+                  <FavoritosProfessor
+                    explorarRecursos={() => setTelaAtiva('CONSULTA_RECURSOS')}
+                  />
+                )}
               </section>
             )}
           </main>
@@ -338,7 +442,7 @@ export default function App() {
         </div>
         <span className="eyebrow">GESTÃO DE LABORATÓRIOS</span>
         <h1>Bem-vindo de volta</h1>
-        <p className="login-description">Entre com a sua conta para aceder aos espaços e reservas.</p>
+        <p className="login-description">Entre com sua conta para acessar os espaços e as reservas.</p>
         {erro && <p className="feedback feedback-error" role="alert">{typeof erro === 'string' ? erro : 'Erro de validação no login. Verifique os dados.'}</p>}
         <form onSubmit={handleLogin} className="login-form">
           <label htmlFor="login-email">E-mail</label>
