@@ -17,6 +17,7 @@ classDiagram
         +String nome
         +String email
         +String senha_hash
+        +String pin_hash
         +String perfil
         +String status
         +String avatar_url
@@ -218,7 +219,7 @@ As tabelas abaixo descrevem as colunas persistidas pelos modelos ORM. Uma coluna
 
 | Tabela / entidade | Campos e tipos principais | Chaves, nulabilidade e regras |
 |---|---|---|
-| `usuarios` (`Usuario`) | `id` texto(36), `nome` texto(100), `email` texto(100), `senha_hash` texto(255), `perfil` texto(20), `status` texto(20), `avatar_url` texto(500), `ultima_atividade` data/hora, `suspensao_ate` data/hora, `cpf` texto(11), `rg` texto(30), `data_nascimento` data, `deve_trocar_senha` booleano | PK `id`; e-mail único; índice único parcial para CPF não nulo. Os campos de avatar, atividade, suspensão e documentos são opcionais no banco. `status`: `ATIVO`, `INATIVO` ou `SUSPENSO`; `perfil`: `ALUNO`, `PROFESSOR` ou `ADMINISTRADOR`. |
+| `usuarios` (`Usuario`) | `id` texto(36), `nome` texto(100), `email` texto(100), `senha_hash` texto(255), `pin_hash` texto(255), `perfil` texto(20), `status` texto(20), `avatar_url` texto(500), `ultima_atividade` data/hora, `suspensao_ate` data/hora, `cpf` texto(11), `rg` texto(30), `data_nascimento` data, `deve_trocar_senha` booleano | PK `id`; e-mail único; índice único parcial para CPF não nulo. `pin_hash` é anulável e armazena exclusivamente o hash bcrypt do PIN pessoal de seis dígitos; contas legadas sem PIN permanecem `NULL`. Os campos de avatar, atividade, suspensão e documentos também são opcionais no banco. `status`: `ATIVO`, `INATIVO` ou `SUSPENSO`; `perfil`: `ALUNO`, `PROFESSOR` ou `ADMINISTRADOR`. |
 | `laboratorios` (`Laboratorio`) | `id` texto(36), `nome` texto(100), `capacidade` inteiro, `status` texto(20) | PK `id`; nome obrigatório, único e indexado; capacidade obrigatória. Status utilizado: `ATIVO` ou `INATIVO`. |
 | `equipamentos` (`Equipamento`) | `id` texto(36), `nome` texto(100), `descricao` texto(500), `status` texto(20), `laboratorio_id` texto(36) | PK `id`; FK obrigatória para `laboratorios`; nome indexado. Status utilizado: `ATIVO` ou `INATIVO`; não há quantidade, estado de manutenção nem reserva independente. |
 | `reservas` (`Reserva`) | `id` texto(36), `laboratorio_id` texto(36), `usuario_id` texto(36), `data_inicio` e `data_fim` data/hora, `finalidade` texto(500), `status` texto(20), `motivo_recusa` texto(500), `data_fim_real` e `data_no_show` data/hora | PK `id`; FKs para laboratório e titular; `data_fim > data_inicio`; status limitado a `PENDENTE`, `APROVADA`, `RECUSADA`, `EM_USO`, `CONCLUIDA`, `CANCELADA` ou `NO_SHOW`. `motivo_recusa`, `data_fim_real` e `data_no_show` são opcionais. |

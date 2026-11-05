@@ -4,6 +4,34 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+
+def normalizar_rg_padrao(rg: str) -> str:
+    if not isinstance(rg, str):
+        raise ValueError("Informe um RG válido com até 9 caracteres.")
+    normalizado = re.sub(r"[^0-9A-Za-z]", "", rg).upper()
+    if not re.fullmatch(r"\d{4,8}[\dX]", normalizado):
+        raise ValueError("Informe um RG válido com até 9 caracteres.")
+    return normalizado
+
+
+def normalizar_cpf_entrada(cpf: str) -> str:
+    if not isinstance(cpf, str):
+        raise ValueError("Informe um CPF válido.")
+    return re.sub(r"\D", "", cpf)
+
+
+def normalizar_data_entrada(valor):
+    if not isinstance(valor, str):
+        return valor
+    partes = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", valor.strip())
+    if not partes:
+        return valor
+    try:
+        return datetime.strptime(valor.strip(), "%d/%m/%Y").date()
+    except ValueError as erro:
+        raise ValueError("Informe uma data válida no formato DD/MM/AAAA.") from erro
+
+
 class UsuarioBase(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     email: str = Field(min_length=3, max_length=100)
@@ -63,9 +91,29 @@ class UsuarioBase(BaseModel):
 
 class UsuarioCriar(UsuarioBase):
     cpf: str = Field(min_length=11, max_length=14)
-    rg: str = Field(min_length=5, max_length=30)
+    rg: str = Field(min_length=5, max_length=12)
     data_nascimento: date
     senha: str = Field(min_length=12, max_length=72)
+
+    @field_validator("cpf", mode="before")
+    @classmethod
+    def preparar_cpf_cadastro(cls, cpf: str) -> str:
+        return normalizar_cpf_entrada(cpf)
+
+    @field_validator("rg")
+    @classmethod
+    def validar_rg_cadastro(cls, rg: str) -> str:
+        return normalizar_rg_padrao(rg)
+
+    @field_validator("rg", mode="before")
+    @classmethod
+    def preparar_rg_cadastro(cls, rg: str) -> str:
+        return normalizar_rg_padrao(rg)
+
+    @field_validator("data_nascimento", mode="before")
+    @classmethod
+    def preparar_data_cadastro(cls, valor):
+        return normalizar_data_entrada(valor)
 
     @field_validator("senha")
     @classmethod
@@ -74,18 +122,40 @@ class UsuarioCriar(UsuarioBase):
             raise ValueError("A senha não pode estar vazia.")
         if len(senha.encode("utf-8")) > 72:
             raise ValueError("A senha não pode exceder 72 bytes.")
-        if not any(caractere.isalpha() for caractere in senha) or not any(caractere.isdigit() for caractere in senha):
-            raise ValueError("A senha deve conter letras e números.")
+        if not re.search(r"[A-Z]", senha):
+            raise ValueError("A senha deve conter ao menos uma letra maiúscula.")
+        if not re.search(r"[a-z]", senha):
+            raise ValueError("A senha deve conter ao menos uma letra minúscula.")
+        if not re.search(r"[0-9]", senha):
+            raise ValueError("A senha deve conter ao menos um número.")
+        if not re.search(r"[^A-Za-z0-9\s]", senha):
+            raise ValueError("A senha deve conter ao menos um caractere especial.")
         return senha
 
 class UsuarioResponse(UsuarioBase):
     id: str
+    avatar_url: str | None = None
     status: Literal["ATIVO", "INATIVO", "SUSPENSO"]
     suspensao_ate: datetime | None = None
     deve_trocar_senha: bool = False
 
     class Config:
         from_attributes = True
+
+
+class LoginResponse(BaseModel):
+    token: str
+    nome: str
+    email: str
+    perfil: Literal["ADMINISTRADOR", "PROFESSOR", "ALUNO"]
+    status: Literal["ATIVO", "INATIVO", "SUSPENSO"]
+    deve_trocar_senha: bool
+    pin_definido: bool
+    pin_configurado: bool
+    suspensao_ate: datetime | None
+    avatar_url: str | None
+    ultima_atividade: datetime | None
+
 
 class UsuarioStatusResponse(BaseModel):
     id: str
@@ -94,8 +164,23 @@ class UsuarioStatusResponse(BaseModel):
 class PerfilUsuarioAtualizar(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     cpf: str = Field(min_length=11, max_length=14)
-    rg: str = Field(min_length=5, max_length=30)
+    rg: str = Field(min_length=5, max_length=12)
     data_nascimento: date
+
+    @field_validator("cpf", mode="before")
+    @classmethod
+    def preparar_cpf_perfil(cls, cpf: str) -> str:
+        return normalizar_cpf_entrada(cpf)
+
+    @field_validator("rg", mode="before")
+    @classmethod
+    def preparar_rg_perfil(cls, rg: str) -> str:
+        return normalizar_rg_padrao(rg)
+
+    @field_validator("data_nascimento", mode="before")
+    @classmethod
+    def preparar_data_perfil(cls, valor):
+        return normalizar_data_entrada(valor)
 
     @field_validator("nome")
     @classmethod
@@ -113,7 +198,7 @@ class PerfilUsuarioAtualizar(BaseModel):
     @field_validator("rg")
     @classmethod
     def validar_rg_perfil(cls, rg: str) -> str:
-        return UsuarioBase.normalizar_rg(rg)
+        return normalizar_rg_padrao(rg)
 
     @field_validator("data_nascimento")
     @classmethod
@@ -133,6 +218,19 @@ class PerfilUsuarioResponse(BaseModel):
     rg: str | None
     data_nascimento: date | None
     deve_trocar_senha: bool
+    pin_configurado: bool
+    pin_definido: bool
+
+class AlterarPin(BaseModel):
+    pin_atual: str | None = Field(default=None, pattern=r"^\d{6}$")
+    novo_pin: str = Field(pattern=r"^\d{6}$")
+    confirmar_pin: str = Field(pattern=r"^\d{6}$")
+
+    @model_validator(mode="after")
+    def validar_confirmacao(self):
+        if self.novo_pin != self.confirmar_pin:
+            raise ValueError("O PIN e a confirmação devem ser iguais.")
+        return self
 
 class AlterarSenha(BaseModel):
     senha_atual: str = Field(min_length=1, max_length=72)
@@ -154,6 +252,63 @@ class EsqueciSenhaRequest(BaseModel):
     @classmethod
     def normalizar_email_reset(cls, email: str) -> str:
         return UsuarioBase.normalizar_e_validar_email(email)
+
+class ValidarDadosResetRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=100)
+    cpf: str = Field(min_length=11, max_length=14)
+    rg: str = Field(min_length=5, max_length=12)
+    pin: str = Field(pattern=r"^\d{6}$")
+
+    @field_validator("cpf", mode="before")
+    @classmethod
+    def preparar_cpf_reset(cls, cpf: str) -> str:
+        return normalizar_cpf_entrada(cpf)
+
+    @field_validator("rg", mode="before")
+    @classmethod
+    def preparar_rg_reset(cls, rg: str) -> str:
+        return normalizar_rg_padrao(rg)
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email(cls, email: str) -> str:
+        return UsuarioBase.normalizar_e_validar_email(email)
+
+    @field_validator("cpf")
+    @classmethod
+    def normalizar_cpf(cls, cpf: str) -> str:
+        digitos = UsuarioBase.validar_cpf(cpf)
+        if digitos is None:
+            raise ValueError("Informe um CPF válido.")
+        return digitos
+
+    @field_validator("rg")
+    @classmethod
+    def normalizar_rg_reset(cls, rg: str) -> str:
+        return normalizar_rg_padrao(rg)
+
+class RedefinirSenhaRequest(BaseModel):
+    token: str = Field(min_length=40, max_length=100)
+    nova_senha: str = Field(min_length=8, max_length=72)
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_nova_senha_reset(cls, senha: str) -> str:
+        if len(senha.encode("utf-8")) > 72:
+            raise ValueError("A senha não pode exceder 72 bytes.")
+        if not re.search(r"[A-Z]", senha):
+            raise ValueError("A senha deve conter ao menos uma letra maiúscula.")
+        if not re.search(r"[a-z]", senha):
+            raise ValueError("A senha deve conter ao menos uma letra minúscula.")
+        if not re.search(r"[0-9]", senha):
+            raise ValueError("A senha deve conter ao menos um número.")
+        if not re.search(r"[^A-Za-z0-9\s]", senha):
+            raise ValueError("A senha deve conter ao menos um caractere especial.")
+        return senha
+
+class TokenResetSenhaResponse(BaseModel):
+    token: str
+    mensagem: str
 
 class ResetSenhaResponse(BaseModel):
     notificacao_id: str
@@ -251,6 +406,7 @@ class AlunoResumoResponse(BaseModel):
 class CoReservanteResponse(BaseModel):
     id: str
     nome: str
+    avatar_url: str | None = None
 
 
 class FavoritoResponse(BaseModel):
@@ -339,6 +495,7 @@ class ReservaAnaliseResponse(BaseModel):
     id: str
     usuario_id: str
     usuario_nome: str
+    usuario_avatar_url: str | None = None
     laboratorio_id: str
     laboratorio_nome: str
     data_inicio: datetime
@@ -351,6 +508,7 @@ class ReservaAnaliseResponse(BaseModel):
 class ReservaHistoricoResponse(BaseModel):
     usuario_id: str
     usuario_nome: str
+    usuario_avatar_url: str | None = None
     id: str
     laboratorio_id: str
     laboratorio_nome: str

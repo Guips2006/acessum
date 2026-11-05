@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { CalendarDays } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import Avatar from './components/Avatar';
 import { baixarRelatorio } from './utils/baixarRelatorio';
 import { formatarStatus } from './utils/formatarStatus';
 
@@ -212,7 +213,7 @@ export default function HistoricoReservas({ voltar }) {
     });
 
   return (
-    <section className="history-view">
+    <section className="history-view content-page">
       <header className="history-header">
         <button type="button" className="button-secondary history-back-button" onClick={voltar}>
           ← Voltar ao Menu
@@ -371,15 +372,35 @@ export default function HistoricoReservas({ voltar }) {
             {reservasFiltradas.map(reserva => (
               <article key={reserva.id} className="history-reservation-card">
               <h3 style={{ margin: '0 0 8px' }}>{reserva.laboratorio_nome}</h3>
+              <div className="reservation-person">
+                <Avatar
+                  className="reservation-avatar"
+                  nome={reserva.usuario_nome}
+                  src={reserva.usuario_avatar_url}
+                  baseUrl={api.defaults.baseURL}
+                />
+                <span>Solicitante: <strong>{reserva.usuario_nome}</strong></span>
+              </div>
               {reserva.usuario_id !== user.id && (
                 <p className="shared-reservation-note">
-                  Reserva solicitada por {reserva.usuario_nome}; você participa como co-reservante.
+                  Você participa desta reserva como co-reservante.
                 </p>
               )}
               {reserva.co_reservantes?.length > 0 && (
-                <p className="shared-reservation-note">
-                  Co-reservantes: {reserva.co_reservantes.map(coReservante => coReservante.nome).join(', ')}
-                </p>
+                <div className="reservation-people">
+                  <span>Co-reservantes</span>
+                  {reserva.co_reservantes.map(coReservante => (
+                    <div className="reservation-person" key={coReservante.id}>
+                      <Avatar
+                        className="reservation-avatar"
+                        nome={coReservante.nome}
+                        src={coReservante.avatar_url}
+                        baseUrl={api.defaults.baseURL}
+                      />
+                      <strong>{coReservante.nome}</strong>
+                    </div>
+                  ))}
+                </div>
               )}
               <p style={{ margin: '4px 0' }}>Início: {formatarData(reserva.data_inicio)}</p>
               <p style={{ margin: '4px 0' }}>Fim: {formatarData(reserva.data_fim)}</p>

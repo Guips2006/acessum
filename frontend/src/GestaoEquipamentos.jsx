@@ -80,20 +80,20 @@ export default function GestaoEquipamentos({ voltar }) {
   );
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="content-page" aria-labelledby="equipment-title">
       <button
         type="button"
+        className="content-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
 
-      <h2>Gestão de Equipamentos</h2>
+      <h2 id="equipment-title">Gestão de Equipamentos</h2>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
-      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div className="content-card content-card-muted">
         <h3>Cadastrar novo equipamento</h3>
         <form onSubmit={criarEquipamento} style={{ display: 'grid', gap: '12px' }}>
           <label>
@@ -156,11 +156,10 @@ export default function GestaoEquipamentos({ voltar }) {
         ) : equipamentos.length === 0 ? (
           <p>Nenhum equipamento cadastrado.</p>
         ) : (
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div className="content-card-list">
             {equipamentos.map(equipamento => (
               <article
                 key={equipamento.id}
-                style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
               >
                 <h4 style={{ margin: '0 0 8px' }}>{equipamento.nome}</h4>
                 <p style={{ margin: '4px 0' }}>Descrição: {equipamento.descricao || '—'}</p>

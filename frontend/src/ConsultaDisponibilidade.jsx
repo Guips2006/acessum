@@ -49,10 +49,10 @@ export default function ConsultaDisponibilidade({ laboratorio }) {
 
   return (
     <section
+      className="content-card content-card-muted availability-query-card"
       aria-label={`Disponibilidade de ${laboratorio.nome}`}
-      style={{ marginTop: '14px', padding: '16px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px' }}
     >
-      <h4 style={{ marginTop: 0 }}>Consultar disponibilidade</h4>
+      <h4 className="content-card-title">Consultar disponibilidade</h4>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       <form onSubmit={consultar} style={{ display: 'grid', gap: '12px' }}>
         <label>
@@ -92,7 +92,7 @@ export default function ConsultaDisponibilidade({ laboratorio }) {
             ) : disponibilidade.blocos_livres.map((bloco, index) => (
               <p
                 key={`livre-${index}`}
-                style={{ padding: '10px', backgroundColor: '#ccffcc', border: '1px solid #b7e4b7', borderRadius: '8px' }}
+                className="availability-slot is-free"
               >
                 {formatarData(bloco.inicio)} — {formatarData(bloco.fim)}
               </p>
@@ -105,7 +105,7 @@ export default function ConsultaDisponibilidade({ laboratorio }) {
             ) : disponibilidade.blocos_ocupados.map((bloco, index) => (
               <p
                 key={`ocupado-${index}`}
-                style={{ padding: '10px', backgroundColor: '#eeeeee', border: '1px solid #dddddd', borderRadius: '8px' }}
+                className="availability-slot is-occupied"
               >
                 {formatarData(bloco.inicio)} — {formatarData(bloco.fim)}
               </p>

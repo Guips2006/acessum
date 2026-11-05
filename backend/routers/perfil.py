@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from auth_utils import obter_usuario_logado
+from auth_utils import get_password_hash, obter_usuario_logado, verify_password
 from auditoria_service import registrar_log
 from database import get_db
 import models
@@ -49,6 +49,8 @@ def serializar_perfil(usuario: models.Usuario) -> schemas.PerfilUsuarioResponse:
         rg=usuario.rg,
         data_nascimento=usuario.data_nascimento,
         deve_trocar_senha=usuario.deve_trocar_senha,
+        pin_configurado=usuario.pin_hash is not None,
+        pin_definido=bool(usuario.pin_hash),
     )
 
 
@@ -194,3 +196,34 @@ async def atualizar_meu_perfil(
     if novo_caminho is not None and avatar_anterior != usuario.avatar_url:
         remover_avatar_anterior(avatar_anterior)
     return serializar_perfil(usuario)
+
+
+@router.put(
+    "/pin",
+    response_model=schemas.MensagemGenericaResponse,
+)
+def alterar_pin(
+    dados: schemas.AlterarPin,
+    usuario: models.Usuario = Depends(obter_usuario_logado),
+    db: Session = Depends(get_db),
+):
+    if usuario.pin_hash is not None:
+        if not dados.pin_atual or not verify_password(
+            dados.pin_atual, usuario.pin_hash
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="O PIN atual está incorreto.",
+            )
+
+    usuario.pin_hash = get_password_hash(dados.novo_pin)
+    registrar_log(
+        db,
+        usuario,
+        "PIN_SEGURANCA_ATUALIZADO",
+        "USUARIO",
+        usuario.id,
+        "PIN de segurança pessoal cadastrado ou atualizado.",
+    )
+    db.commit()
+    return {"mensagem": "PIN de segurança atualizado com sucesso."}

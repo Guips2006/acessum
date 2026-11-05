@@ -134,10 +134,10 @@ export default function SolicitarReserva({ laboratorio, fechar, solicitada }) {
 
   return (
     <section
+      className="content-card content-card-muted reservation-request-card"
       aria-label={`Solicitar reserva de ${laboratorio.nome}`}
-      style={{ marginTop: '14px', padding: '16px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px' }}
     >
-      <h4 style={{ marginTop: 0 }}>Solicitar reserva: {laboratorio.nome}</h4>
+      <h4 className="content-card-title">Solicitar reserva: {laboratorio.nome}</h4>
       {suspenso && (
         <p className="feedback feedback-error" role="alert">
           Sua conta está suspensa{fimSuspensao ? ` até ${fimSuspensao}` : ''}. Novas reservas estão bloqueadas.

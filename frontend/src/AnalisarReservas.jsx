@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import Avatar from './components/Avatar';
 import { formatarStatus } from './utils/formatarStatus';
 
 function formatarData(valor) {
@@ -57,15 +58,15 @@ export default function AnalisarReservas({ voltar, onPendentesChange }) {
   };
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="content-page" aria-labelledby="reservation-review-title">
       <button
         type="button"
+        className="content-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
-      <h2>Analisar solicitações de reserva</h2>
+      <h2 id="reservation-review-title">Analisar solicitações de reserva</h2>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
@@ -74,18 +75,36 @@ export default function AnalisarReservas({ voltar, onPendentesChange }) {
       ) : reservas.length === 0 ? (
         <p>Não há solicitações aguardando análise.</p>
       ) : (
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div className="content-card-list">
           {reservas.map(reserva => (
             <article
               key={reserva.id}
-              style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
             >
               <h3 style={{ margin: '0 0 8px' }}>{reserva.laboratorio_nome}</h3>
-              <p style={{ margin: '4px 0' }}>Solicitante: {reserva.usuario_nome}</p>
+              <div className="reservation-person">
+                <Avatar
+                  className="reservation-avatar"
+                  nome={reserva.usuario_nome}
+                  src={reserva.usuario_avatar_url}
+                  baseUrl={api.defaults.baseURL}
+                />
+                <span>Solicitante: <strong>{reserva.usuario_nome}</strong></span>
+              </div>
               {reserva.co_reservantes?.length > 0 && (
-                <p style={{ margin: '4px 0' }}>
-                  Co-reservantes: {reserva.co_reservantes.map(coReservante => coReservante.nome).join(', ')}
-                </p>
+                <div className="reservation-people">
+                  <span>Co-reservantes</span>
+                  {reserva.co_reservantes.map(coReservante => (
+                    <div className="reservation-person" key={coReservante.id}>
+                      <Avatar
+                        className="reservation-avatar"
+                        nome={coReservante.nome}
+                        src={coReservante.avatar_url}
+                        baseUrl={api.defaults.baseURL}
+                      />
+                      <strong>{coReservante.nome}</strong>
+                    </div>
+                  ))}
+                </div>
               )}
               <p style={{ margin: '4px 0' }}>Início: {formatarData(reserva.data_inicio)}</p>
               <p style={{ margin: '4px 0' }}>Fim: {formatarData(reserva.data_fim)}</p>

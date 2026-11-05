@@ -31,6 +31,7 @@ def serializar_reserva_analise(reserva: models.Reserva) -> schemas.ReservaAnalis
         id=reserva.id,
         usuario_id=reserva.usuario_id,
         usuario_nome=reserva.usuario.nome,
+        usuario_avatar_url=reserva.usuario.avatar_url,
         laboratorio_id=reserva.laboratorio_id,
         laboratorio_nome=reserva.laboratorio.nome,
         data_inicio=reserva.data_inicio.replace(tzinfo=timezone.utc),
@@ -39,7 +40,11 @@ def serializar_reserva_analise(reserva: models.Reserva) -> schemas.ReservaAnalis
         status=reserva.status,
         motivo_recusa=reserva.motivo_recusa,
         co_reservantes=[
-            schemas.CoReservanteResponse(id=item.usuario.id, nome=item.usuario.nome)
+            schemas.CoReservanteResponse(
+                id=item.usuario.id,
+                nome=item.usuario.nome,
+                avatar_url=item.usuario.avatar_url,
+            )
             for item in reserva.co_reservantes
         ],
     )
@@ -49,6 +54,7 @@ def serializar_reserva_historico(reserva: models.Reserva) -> schemas.ReservaHist
     return schemas.ReservaHistoricoResponse(
         usuario_id=reserva.usuario_id,
         usuario_nome=reserva.usuario.nome,
+        usuario_avatar_url=reserva.usuario.avatar_url,
         id=reserva.id,
         laboratorio_id=reserva.laboratorio_id,
         laboratorio_nome=reserva.laboratorio.nome,
@@ -63,7 +69,11 @@ def serializar_reserva_historico(reserva: models.Reserva) -> schemas.ReservaHist
             else None
         ),
         co_reservantes=[
-            schemas.CoReservanteResponse(id=item.usuario.id, nome=item.usuario.nome)
+            schemas.CoReservanteResponse(
+                id=item.usuario.id,
+                nome=item.usuario.nome,
+                avatar_url=item.usuario.avatar_url,
+            )
             for item in reserva.co_reservantes
         ],
     )
@@ -652,7 +662,11 @@ def solicitar_reserva(
         finalidade=reserva.finalidade,
         status=reserva.status,
         co_reservantes=[
-            schemas.CoReservanteResponse(id=item.usuario.id, nome=item.usuario.nome)
+            schemas.CoReservanteResponse(
+                id=item.usuario.id,
+                nome=item.usuario.nome,
+                avatar_url=item.usuario.avatar_url,
+            )
             for item in reserva.co_reservantes
         ],
     )

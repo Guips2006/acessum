@@ -1,20 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { Camera, LockKeyhole, Upload } from 'lucide-react';
+import { Camera, KeyRound, LockKeyhole, Upload } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import { formatarPerfil } from './utils/formatarStatus';
+import { mascararCpf, mascararRg } from './utils/mascaras';
+import Avatar from './components/Avatar';
 
 const TAMANHO_MAXIMO_AVATAR = 5 * 1024 * 1024;
 const TIPOS_AVATAR = ['image/jpeg', 'image/png'];
-
-function urlDoAvatar(url, baseURL) {
-  if (!url) return '';
-  try {
-    return new URL(url, baseURL).toString();
-  } catch {
-    return '';
-  }
-}
 
 function mensagemErro(error) {
   const detalhe = error.response?.data?.detail;
@@ -26,8 +19,8 @@ function mensagemErro(error) {
 export default function MeuPerfil({ voltar }) {
   const { user, api, atualizarUsuario } = useContext(AuthContext);
   const [nome, setNome] = useState(user.nome || '');
-  const [cpf, setCpf] = useState(user.cpf || '');
-  const [rg, setRg] = useState(user.rg || '');
+  const [cpf, setCpf] = useState(mascararCpf(user.cpf || ''));
+  const [rg, setRg] = useState(mascararRg(user.rg || ''));
   const [dataNascimento, setDataNascimento] = useState(user.data_nascimento || '');
   const [avatar, setAvatar] = useState(null);
   const [preview, setPreview] = useState('');
@@ -39,6 +32,13 @@ export default function MeuPerfil({ voltar }) {
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [alterandoSenha, setAlterandoSenha] = useState(false);
+  const [pinConfigurado, setPinConfigurado] = useState(user.pin_configurado === true);
+  const [pinAtual, setPinAtual] = useState('');
+  const [novoPin, setNovoPin] = useState('');
+  const [confirmarPin, setConfirmarPin] = useState('');
+  const [alterandoPin, setAlterandoPin] = useState(false);
+  const [erroPin, setErroPin] = useState('');
+  const [sucessoPin, setSucessoPin] = useState('');
 
   useEffect(() => {
     let ativo = true;
@@ -46,9 +46,10 @@ export default function MeuPerfil({ voltar }) {
       .then(resposta => {
         if (!ativo) return;
         atualizarUsuario(resposta.data);
+        setPinConfigurado(resposta.data.pin_configurado === true);
         setNome(resposta.data.nome);
-        setCpf(resposta.data.cpf || '');
-        setRg(resposta.data.rg || '');
+        setCpf(mascararCpf(resposta.data.cpf || ''));
+        setRg(mascararRg(resposta.data.rg || ''));
         setDataNascimento(resposta.data.data_nascimento || '');
       })
       .catch(() => {
@@ -101,8 +102,8 @@ export default function MeuPerfil({ voltar }) {
       const resposta = await api.patch('/api/perfil/me', dados);
       atualizarUsuario(resposta.data);
       setNome(resposta.data.nome);
-      setCpf(resposta.data.cpf || '');
-      setRg(resposta.data.rg || '');
+      setCpf(mascararCpf(resposta.data.cpf || ''));
+      setRg(mascararRg(resposta.data.rg || ''));
       setDataNascimento(resposta.data.data_nascimento || '');
       setAvatar(null);
       setPreview('');
@@ -140,7 +141,49 @@ export default function MeuPerfil({ voltar }) {
     }
   };
 
-  const imagem = preview || urlDoAvatar(user.avatar_url, api.defaults.baseURL);
+  const validarPin = [
+    { texto: 'O PIN tem exatamente 6 dígitos', valida: /^\d{6}$/.test(novoPin) },
+    { texto: 'A confirmação corresponde ao PIN', valida: novoPin.length === 6 && novoPin === confirmarPin },
+    {
+      texto: 'Informe o PIN atual para alterar o PIN cadastrado',
+      valida: !pinConfigurado || /^\d{6}$/.test(pinAtual),
+    },
+  ];
+
+  const alterarPinSeguranca = async (evento) => {
+    evento.preventDefault();
+    setErroPin('');
+    setSucessoPin('');
+    if (!validarPin.every(requisito => requisito.valida)) {
+      setErroPin('Confira os requisitos do PIN antes de continuar.');
+      return;
+    }
+
+    setAlterandoPin(true);
+    try {
+      await api.put('/api/perfil/pin', {
+        pin_atual: pinConfigurado ? pinAtual : null,
+        novo_pin: novoPin,
+        confirmar_pin: confirmarPin,
+      });
+      setPinConfigurado(true);
+      setPinAtual('');
+      setNovoPin('');
+      setConfirmarPin('');
+      setSucessoPin('PIN de segurança atualizado com sucesso.');
+    } catch (error) {
+      setErroPin(mensagemErro(error));
+    } finally {
+      setAlterandoPin(false);
+    }
+  };
+
+  const atualizarPin = (atualizar, valor) => {
+    atualizar(valor.replace(/\D/g, '').slice(0, 6));
+    setErroPin('');
+    setSucessoPin('');
+  };
+
   const ultimaAtividade = user.ultima_atividade
     ? new Date(user.ultima_atividade).toLocaleString('pt-BR')
     : 'Ainda não registrada';
@@ -167,13 +210,12 @@ export default function MeuPerfil({ voltar }) {
       <>
       <form className="profile-form" onSubmit={salvarPerfil}>
         <div className="profile-avatar-control">
-          {imagem ? (
-            <img className="profile-avatar-image" src={imagem} alt={`Foto de ${nome || 'perfil'}`} />
-          ) : (
-            <span className="profile-avatar-fallback" aria-hidden="true">
-              {nome.charAt(0).toUpperCase() || 'U'}
-            </span>
-          )}
+          <Avatar
+            className="profile-avatar-image"
+            nome={nome}
+            src={preview || user.avatar_url}
+            baseUrl={api.defaults.baseURL}
+          />
           <input
             id="profile-avatar"
             type="file"
@@ -202,7 +244,7 @@ export default function MeuPerfil({ voltar }) {
             inputMode="numeric"
             autoComplete="off"
             value={cpf}
-            onChange={evento => setCpf(evento.target.value)}
+            onChange={evento => setCpf(mascararCpf(evento.target.value))}
             maxLength={14}
             required
           />
@@ -213,9 +255,10 @@ export default function MeuPerfil({ voltar }) {
             id="profile-rg"
             name="rg"
             autoComplete="off"
+            inputMode="text"
             value={rg}
-            onChange={evento => setRg(evento.target.value)}
-            maxLength={30}
+            onChange={evento => setRg(mascararRg(evento.target.value))}
+            maxLength={12}
             required
           />
         </label>
@@ -271,6 +314,74 @@ export default function MeuPerfil({ voltar }) {
         </label>
         <button type="submit" disabled={alterandoSenha} aria-busy={alterandoSenha}>
           {alterandoSenha ? <LoadingSpinner label="Alterando senha..." inline /> : 'Atualizar senha'}
+        </button>
+      </form>
+      <form className="profile-form profile-pin-form" onSubmit={alterarPinSeguranca}>
+        <h3><KeyRound size={18} aria-hidden="true" /> PIN de Segurança Pessoal</h3>
+        <p className="profile-pin-description">
+          Use seu PIN de seis dígitos para confirmar sua identidade ao redefinir a senha.
+          O PIN é armazenado com hash seguro.
+        </p>
+        {erroPin && <p className="feedback feedback-error" role="alert">{erroPin}</p>}
+        {sucessoPin && <p className="feedback feedback-success" role="status">{sucessoPin}</p>}
+        {pinConfigurado && (
+          <label htmlFor="current-security-pin">
+            PIN atual
+            <input
+              id="current-security-pin"
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              pattern="\d{6}"
+              maxLength={6}
+              value={pinAtual}
+              onChange={evento => atualizarPin(setPinAtual, evento.target.value)}
+              required
+            />
+          </label>
+        )}
+        <label htmlFor="new-security-pin">
+          {pinConfigurado ? 'Novo PIN' : 'PIN de segurança'}
+          <input
+            id="new-security-pin"
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            pattern="\d{6}"
+            maxLength={6}
+            value={novoPin}
+            aria-invalid={Boolean(novoPin && !/^\d{6}$/.test(novoPin))}
+            onChange={evento => atualizarPin(setNovoPin, evento.target.value)}
+            required
+          />
+        </label>
+        <label htmlFor="confirm-security-pin">
+          Confirme o PIN
+          <input
+            id="confirm-security-pin"
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            pattern="\d{6}"
+            maxLength={6}
+            value={confirmarPin}
+            aria-invalid={Boolean(confirmarPin && confirmarPin !== novoPin)}
+            onChange={evento => atualizarPin(setConfirmarPin, evento.target.value)}
+            required
+          />
+        </label>
+        <ul className="pin-requirements" aria-live="polite">
+          {validarPin.map(requisito => (
+            <li key={requisito.texto} className={requisito.valida ? 'is-valid' : ''}>
+              <span aria-hidden="true">{requisito.valida ? '✓' : '•'}</span>
+              {requisito.texto}
+            </li>
+          ))}
+        </ul>
+        <button type="submit" disabled={alterandoPin} aria-busy={alterandoPin}>
+          {alterandoPin
+            ? <LoadingSpinner label="Atualizando PIN..." inline />
+            : pinConfigurado ? 'Atualizar PIN' : 'Cadastrar PIN'}
         </button>
       </form>
       </>

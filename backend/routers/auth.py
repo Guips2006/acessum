@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta, timezone
+import hashlib
 import secrets
-import string
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from database import get_db
@@ -20,12 +20,17 @@ import models
 import schemas
 
 router = APIRouter(prefix="/api/auth")
+LIMITE_TENTATIVAS_RESET = 5
+JANELA_TENTATIVAS_RESET = timedelta(minutes=15)
+RETENCAO_TENTATIVAS_RESET = timedelta(days=1)
+VALIDADE_TOKEN_RESET = timedelta(minutes=10)
+DUMMY_RESET_PIN_HASH = get_password_hash(secrets.token_hex(16))
 
 class DadosLogin(BaseModel):
     email: str
     senha: str
 
-@router.post("/login")
+@router.post("/login", response_model=schemas.LoginResponse)
 def login(dados: DadosLogin, db: Session = Depends(get_db)):
     user = db.query(Usuario).filter(Usuario.email == dados.email).first()
     
@@ -48,6 +53,8 @@ def login(dados: DadosLogin, db: Session = Depends(get_db)):
         "perfil": user.perfil,
         "status": user.status,
         "deve_trocar_senha": user.deve_trocar_senha,
+        "pin_definido": bool(user.pin_hash),
+        "pin_configurado": user.pin_hash is not None,
         "suspensao_ate": (
             user.suspensao_ate.replace(tzinfo=timezone.utc)
             if user.suspensao_ate
@@ -58,7 +65,7 @@ def login(dados: DadosLogin, db: Session = Depends(get_db)):
         "ultima_atividade": user.ultima_atividade.replace(tzinfo=timezone.utc),
     }
 
-@router.get("/me")
+@router.get("/me", response_model=schemas.PerfilUsuarioResponse)
 def meu_perfil(usuario: Usuario = Depends(obter_usuario_logado)):
     return {
         "id": usuario.id,
@@ -76,6 +83,8 @@ def meu_perfil(usuario: Usuario = Depends(obter_usuario_logado)):
         "rg": usuario.rg,
         "data_nascimento": usuario.data_nascimento,
         "deve_trocar_senha": usuario.deve_trocar_senha,
+        "pin_configurado": usuario.pin_hash is not None,
+        "pin_definido": bool(usuario.pin_hash),
         "ultima_atividade": (
             usuario.ultima_atividade.replace(tzinfo=timezone.utc)
             if usuario.ultima_atividade
@@ -157,3 +166,141 @@ def solicitar_reset_senha(
     except IntegrityError:
         db.rollback()
     return {"mensagem": mensagem}
+
+
+@router.post(
+    "/validar-dados-reset",
+    response_model=schemas.TokenResetSenhaResponse,
+)
+def validar_dados_reset(
+    dados: schemas.ValidarDadosResetRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    agora = datetime.now(timezone.utc).replace(tzinfo=None)
+    endereco_ip = request.client.host if request.client else "desconhecido"
+    chave_ip = hashlib.sha256(endereco_ip.encode("utf-8")).hexdigest()
+
+    db.query(models.TentativaResetSenha).filter(
+        models.TentativaResetSenha.criada_em < agora - RETENCAO_TENTATIVAS_RESET
+    ).delete(synchronize_session=False)
+    db.query(models.TokenResetSenha).filter(
+        or_(
+            models.TokenResetSenha.expira_em <= agora,
+            models.TokenResetSenha.consumido_em.is_not(None),
+        )
+    ).delete(synchronize_session=False)
+    tentativas = db.query(models.TentativaResetSenha).filter(
+        models.TentativaResetSenha.chave_ip == chave_ip,
+        models.TentativaResetSenha.criada_em >= agora - JANELA_TENTATIVAS_RESET,
+    ).count()
+    if tentativas >= LIMITE_TENTATIVAS_RESET:
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas. Aguarde antes de tentar novamente.",
+        )
+
+    db.add(models.TentativaResetSenha(chave_ip=chave_ip, criada_em=agora))
+    db.commit()
+
+    usuario = (
+        db.query(Usuario)
+        .filter(
+            func.lower(Usuario.email) == dados.email,
+            Usuario.cpf == dados.cpf,
+            Usuario.rg == dados.rg,
+            Usuario.status == "ATIVO",
+        )
+        .first()
+    )
+    hash_pin = (
+        usuario.pin_hash
+        if usuario is not None and usuario.pin_hash
+        else DUMMY_RESET_PIN_HASH
+    )
+    pin_valido = verify_password(dados.pin, hash_pin)
+    if usuario is None or usuario.pin_hash is None or not pin_valido:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="E-mail, CPF, RG ou PIN de segurança inválidos.",
+        )
+
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    db.query(models.TokenResetSenha).filter(
+        models.TokenResetSenha.usuario_id == usuario.id,
+        models.TokenResetSenha.consumido_em.is_(None),
+    ).update(
+        {"consumido_em": agora},
+        synchronize_session=False,
+    )
+    db.add(
+        models.TokenResetSenha(
+            usuario_id=usuario.id,
+            token_hash=token_hash,
+            criado_em=agora,
+            expira_em=agora + VALIDADE_TOKEN_RESET,
+        )
+    )
+    db.commit()
+    return {
+        "token": token,
+        "mensagem": "Dados validados. Defina uma nova senha.",
+    }
+
+
+@router.post(
+    "/redefinir-senha",
+    response_model=schemas.MensagemGenericaResponse,
+)
+def redefinir_senha_com_token(
+    dados: schemas.RedefinirSenhaRequest,
+    db: Session = Depends(get_db),
+):
+    agora = datetime.now(timezone.utc).replace(tzinfo=None)
+    token_hash = hashlib.sha256(dados.token.encode("utf-8")).hexdigest()
+    token_reset = (
+        db.query(models.TokenResetSenha)
+        .filter(models.TokenResetSenha.token_hash == token_hash)
+        .first()
+    )
+    if token_reset is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O link de redefinição é inválido ou expirou.",
+        )
+
+    consumido = db.query(models.TokenResetSenha).filter(
+        models.TokenResetSenha.id == token_reset.id,
+        models.TokenResetSenha.consumido_em.is_(None),
+        models.TokenResetSenha.expira_em > agora,
+    ).update(
+        {"consumido_em": agora},
+        synchronize_session=False,
+    )
+    if consumido != 1:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O link de redefinição é inválido ou expirou.",
+        )
+
+    usuario = db.query(Usuario).filter(
+        Usuario.id == token_reset.usuario_id,
+        Usuario.status == "ATIVO",
+    ).first()
+    if usuario is None:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O link de redefinição é inválido ou expirou.",
+        )
+
+    usuario.senha_hash = get_password_hash(dados.nova_senha)
+    usuario.deve_trocar_senha = False
+    db.commit()
+    return {"mensagem": "Senha redefinida com sucesso."}

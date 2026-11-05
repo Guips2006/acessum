@@ -80,15 +80,15 @@ export default function ConsultaRecursos({ voltar }) {
   ];
 
   return (
-    <section className="resource-view">
+    <section className="resource-view content-page" aria-labelledby="resources-title">
       <button
         type="button"
+        className="content-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
-      <h2>Recursos Disponíveis</h2>
+      <h2 id="resources-title">Recursos Disponíveis</h2>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       {erroFavoritos && <p className="feedback feedback-error" role="alert">{erroFavoritos}</p>}
 
@@ -97,7 +97,7 @@ export default function ConsultaRecursos({ voltar }) {
       ) : erro ? null : laboratorios.length === 0 ? (
         <p>Nenhum laboratório cadastrado no momento.</p>
       ) : (
-        <div style={{ display: 'grid', gap: '16px' }}>
+        <div className="content-card-list">
           {laboratoriosOrdenados.map(lab => {
             const equipamentos = lab.equipamentos || [];
 
@@ -192,12 +192,9 @@ export default function ConsultaRecursos({ voltar }) {
               {equipamentos.length === 0 ? (
                 <p style={{ margin: 0, fontSize: '14px', color: '#666666' }}>Sem equipamentos vinculados.</p>
               ) : (
-                <div style={{ display: 'grid', gap: '8px' }}>
+                <div className="resource-equipment-list">
                   {equipamentos.map(equipamento => (
-                    <div
-                      key={equipamento.id}
-                      style={{ padding: '12px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px' }}
-                    >
+                    <div key={equipamento.id} className="resource-equipment-card">
                       <strong>{equipamento.nome}</strong>
                       {equipamento.descricao && <span> — {equipamento.descricao}</span>}
                       <span style={{ display: 'block', marginTop: '4px', color: equipamento.status === 'ATIVO' ? '#28a745' : '#dc3545' }}>

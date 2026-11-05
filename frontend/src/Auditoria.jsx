@@ -73,7 +73,7 @@ export default function Auditoria({ voltar }) {
   };
 
   return (
-    <section className="audit-view" aria-labelledby="audit-title">
+    <section className="audit-view content-page" aria-labelledby="audit-title">
       <button type="button" className="audit-back-button" onClick={voltar}>Voltar ao menu</button>
       <div className="audit-heading">
         <div>

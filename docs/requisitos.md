@@ -70,6 +70,17 @@ Regras de Negócio
 > **IF** as credenciais informadas forem inválidas, **THEN THE SYSTEM SHALL**
 > negar o acesso e informar que as credenciais são inválidas.
 
+### Evolução V2.2 — redefinição de senha
+
+Além do login da baseline, a tela de autenticação permite que a pessoa valide e-mail, CPF e PIN de segurança de
+seis dígitos, previamente configurado no perfil e armazenado exclusivamente como hash bcrypt, para receber um
+token temporário de uso único e definir uma nova senha. O serviço aceita somente conta ativa, não informa qual
+dado falhou, limita tentativas e armazena apenas o hash do token. A senha definida nesse fluxo exige no mínimo
+8 caracteres, maiúscula, minúscula, número e caractere especial, validada no navegador e na API e armazenada com
+bcrypt. Cadastro e alteração autenticada preservam a política existente de 12 caracteres. O fluxo de recuperação
+assistida pelo Administrador continua disponível para contas sem PIN. Requisitos detalhados e contratos:
+[SPEC-023](specs/spec-023.md).
+
 ---
 
 ## RF-02 — Controle de perfis e permissões

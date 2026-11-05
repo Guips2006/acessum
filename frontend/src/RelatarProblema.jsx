@@ -33,10 +33,10 @@ export default function RelatarProblema({ tipoRecurso, recursoId, recursoNome, f
 
   return (
     <section
+      className="content-card content-card-warning problem-report-card"
       aria-label={`Relatar problema em ${recursoNome}`}
-      style={{ marginTop: '12px', padding: '16px', backgroundColor: '#fff4d6', border: '1px solid #d39b27', borderRadius: '8px' }}
     >
-      <h4 style={{ marginTop: 0 }}>Relatar problema: {recursoNome}</h4>
+      <h4 className="content-card-title">Relatar problema: {recursoNome}</h4>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
       <form onSubmit={enviarRelato} style={{ display: 'grid', gap: '12px' }}>

@@ -29,6 +29,7 @@ class Usuario(Base):
     cpf = Column(String(11), nullable=True)
     rg = Column(String(30), nullable=True)
     data_nascimento = Column(Date, nullable=True)
+    pin_hash = Column(String(255), nullable=True)
     deve_trocar_senha = Column(Boolean, default=False, nullable=False, server_default="0")
 
 class Laboratorio(Base):
@@ -254,3 +255,29 @@ class NotificacaoConta(Base):
     status = Column(String(20), default="PENDENTE", nullable=False, server_default="PENDENTE")
     atendida_por_id = Column(String(36), ForeignKey("usuarios.id"), nullable=True)
     atendida_em = Column(DateTime, nullable=True)
+
+
+class TokenResetSenha(Base):
+    __tablename__ = "tokens_reset_senha"
+    __table_args__ = (
+        Index("ix_tokens_reset_senha_usuario", "usuario_id", "expira_em"),
+        Index("uq_tokens_reset_senha_hash", "token_hash", unique=True),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    usuario_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    token_hash = Column(String(64), nullable=False)
+    criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expira_em = Column(DateTime, nullable=False)
+    consumido_em = Column(DateTime, nullable=True)
+
+
+class TentativaResetSenha(Base):
+    __tablename__ = "tentativas_reset_senha"
+    __table_args__ = (
+        Index("ix_tentativas_reset_senha_chave_data", "chave_ip", "criada_em"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    chave_ip = Column(String(64), nullable=False)
+    criada_em = Column(DateTime, default=datetime.utcnow, nullable=False)

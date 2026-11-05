@@ -19,7 +19,7 @@ Este documento descreve os padrões observados no código atual do Acessum. Para
 
 Os tokens globais definidos em `frontend/src/styles.css` incluem `--ink`, `--muted`, `--line`, `--surface`, `--canvas`, `--navy`, `--blue`, `--blue-hover`, `--green`, `--red`, `--amber`, `--shadow-sm` e `--shadow-md`. Os seletores de tema redefinem cores e sombras; a combinação de alto contraste com modo escuro possui conjunto próprio. Novos estilos devem priorizar esses tokens em vez de fixar cores por componente.
 
-As opções de aparência ficam em Configurações. Modo escuro e alto contraste são independentes e podem ser combinados. Na ausência de preferência, a interface usa tema claro e contraste normal.
+As opções de aparência ficam em Configurações, e a tela de login também expõe a alternância entre claro e escuro antes da autenticação. Modo escuro e alto contraste são independentes e podem ser combinados. Na ausência de preferência, a interface usa tema claro e contraste normal.
 
 ## 3. Espaçamento, superfícies e responsividade
 

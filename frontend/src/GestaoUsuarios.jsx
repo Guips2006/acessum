@@ -2,7 +2,33 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import Avatar from './components/Avatar';
 import { formatarPerfil, formatarStatus } from './utils/formatarStatus';
+import { mascararCpf, mascararRg } from './utils/mascaras';
+
+const ROTULOS_CAMPOS_CADASTRO = {
+  nome: 'Nome',
+  email: 'E-mail',
+  cpf: 'CPF',
+  rg: 'RG',
+  data_nascimento: 'Data de nascimento',
+  senha: 'Senha',
+  perfil: 'Perfil',
+};
+
+function mensagemErroCadastro(err) {
+  const detalhe = err.response?.data?.detail;
+  if (typeof detalhe === 'string') return detalhe;
+  if (Array.isArray(detalhe)) {
+    const mensagens = detalhe.map(item => {
+      const campo = item.loc?.filter(parte => parte !== 'body').at(-1);
+      const rotulo = ROTULOS_CAMPOS_CADASTRO[campo] || 'Cadastro';
+      return `${rotulo}: ${item.msg}`;
+    });
+    return mensagens.join(' ');
+  }
+  return 'Erro ao criar usuário.';
+}
 
 export default function GestaoUsuarios({ voltar }) {
   const { api } = useContext(AuthContext);
@@ -16,6 +42,13 @@ export default function GestaoUsuarios({ voltar }) {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [usuarioEmAtualizacao, setUsuarioEmAtualizacao] = useState(null);
+  const requisitosSenhaCadastro = [
+    { texto: 'Ao menos 12 caracteres', valida: form.senha.length >= 12 },
+    { texto: 'Uma letra maiúscula', valida: /[A-Z]/.test(form.senha) },
+    { texto: 'Uma letra minúscula', valida: /[a-z]/.test(form.senha) },
+    { texto: 'Um número', valida: /[0-9]/.test(form.senha) },
+    { texto: 'Um caractere especial', valida: /[^A-Za-z0-9\s]/.test(form.senha) },
+  ];
 
   const carregarUsuarios = async () => {
     setCarregando(true);
@@ -48,14 +81,25 @@ export default function GestaoUsuarios({ voltar }) {
     e.preventDefault();
     setErro('');
     setSucesso('');
+    if (!requisitosSenhaCadastro.every(requisito => requisito.valida)) {
+      setErro('A senha deve ter ao menos 12 caracteres, incluindo maiúscula, minúscula, número e caractere especial.');
+      return;
+    }
+
     setSalvando(true);
     try {
-      await api.post('/api/usuarios/', form);
+      await api.post('/api/usuarios/', {
+        ...form,
+        nome: form.nome.trim(),
+        email: form.email.trim(),
+        cpf: form.cpf.replace(/\D/g, ''),
+        rg: form.rg.replace(/[^0-9a-z]/gi, '').toUpperCase(),
+      });
       setForm({ nome: '', email: '', cpf: '', rg: '', data_nascimento: '', perfil: 'ALUNO', senha: '' });
       setSucesso('Usuário cadastrado com sucesso.');
       await carregarUsuarios();
     } catch (err) {
-      setErro(err.response?.data?.detail || 'Erro ao criar usuário.');
+      setErro(mensagemErroCadastro(err));
     } finally {
       setSalvando(false);
     }
@@ -106,20 +150,20 @@ export default function GestaoUsuarios({ voltar }) {
   };
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="content-page" aria-labelledby="users-title">
       <button
         type="button"
+        className="content-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e0e0e0', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
 
-      <h2>Gestão de Usuários</h2>
+      <h2 id="users-title">Gestão de Usuários</h2>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
-      <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f9f9f9', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+      <div className="content-card content-card-muted">
         <h3>Cadastrar novo usuário</h3>
         <form onSubmit={criarUsuario} style={{ display: 'grid', gap: '12px' }}>
           <label>
@@ -154,7 +198,7 @@ export default function GestaoUsuarios({ voltar }) {
               inputMode="numeric"
               autoComplete="off"
               value={form.cpf}
-              onChange={e => setForm({ ...form, cpf: e.target.value })}
+              onChange={e => setForm({ ...form, cpf: mascararCpf(e.target.value) })}
               maxLength={14}
               required
               style={estiloInput}
@@ -164,10 +208,11 @@ export default function GestaoUsuarios({ voltar }) {
             RG
             <input
               name="rg"
+              inputMode="text"
               autoComplete="off"
               value={form.rg}
-              onChange={e => setForm({ ...form, rg: e.target.value })}
-              maxLength={30}
+              onChange={e => setForm({ ...form, rg: mascararRg(e.target.value) })}
+              maxLength={12}
               required
               style={estiloInput}
             />
@@ -197,7 +242,14 @@ export default function GestaoUsuarios({ voltar }) {
               required
               style={estiloInput}
             />
-            <small>A senha deve ter ao menos 12 caracteres, com letras e números.</small>
+            <ul className="registration-password-requirements">
+              {requisitosSenhaCadastro.map(requisito => (
+                <li className={requisito.valida ? 'is-valid' : ''} key={requisito.texto}>
+                  <span aria-hidden="true">{requisito.valida ? '✓' : '○'}</span>
+                  {requisito.texto}
+                </li>
+              ))}
+            </ul>
           </label>
           <label>
             Perfil
@@ -263,14 +315,21 @@ export default function GestaoUsuarios({ voltar }) {
         ) : usuarios.length === 0 ? (
           <p>Nenhum usuário cadastrado.</p>
         ) : (
-          <div style={{ display: 'grid', gap: '12px' }}>
+          <div className="content-card-list">
             {usuarios.map(usuario => (
-              <article
-                key={usuario.id}
-                style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
-              >
-                <h4 style={{ margin: '0 0 8px' }}>{usuario.nome}</h4>
-                <p style={{ margin: '4px 0' }}>{usuario.email}</p>
+              <article key={usuario.id}>
+                <div className="management-user-heading">
+                  <Avatar
+                    className="management-user-avatar"
+                    nome={usuario.nome}
+                    src={usuario.avatar_url}
+                    baseUrl={api.defaults.baseURL}
+                  />
+                  <div>
+                    <h4 style={{ margin: '0 0 8px' }}>{usuario.nome}</h4>
+                    <p style={{ margin: '4px 0' }}>{usuario.email}</p>
+                  </div>
+                </div>
                 <p style={{ margin: '4px 0' }}>Perfil: {formatarPerfil(usuario.perfil)}</p>
                 <p style={{ margin: '4px 0 12px', color: usuario.status === 'ATIVO' ? '#28a745' : usuario.status === 'SUSPENSO' ? '#a96b0a' : '#dc3545', fontWeight: 'bold' }}>
                   Status: {formatarStatus(usuario.status)}

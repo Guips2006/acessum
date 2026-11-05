@@ -5,14 +5,14 @@
 > `docs/requisitos.md` e `docs/casos_de_uso/*` descrevem a baseline acadêmica e foram alinhados ao escopo
 > implementado; diagramas PNG legados não são fonte de verdade.
 >
-> Este documento acompanha as funcionalidades do MVP até a V2.1. As SPECs 001–013 cobrem o escopo inicial; as
+> Este documento acompanha as funcionalidades do MVP até a V2.2. As SPECs 001–013 cobrem o escopo inicial; as
 > SPECs 014–029 registram as evoluções implementadas.
 
 ## Status
 
 - Mapa de cobertura atualizado com base no código atual
 - Cobertura de implementação registrada: SPEC-001 a SPEC-029 — CONCLUÍDO
-- Última atualização: 2026-11-04
+- Última atualização: 2026-11-05
 
 ## Decisões incorporadas
 
@@ -48,7 +48,7 @@ está refletida no comportamento implementado; não implica ampliação do escop
 | OPEN-06 | Resolvido: check-in permitido de 15 minutos antes até 15 minutos depois do início da reserva. |
 | OPEN-07 | Resolvido: o Administrador consulta os relatos e pode marcar o status como `RESOLVIDO`; os únicos estados são `ABERTO` e `RESOLVIDO`. |
 | OPEN-08 | **Encerrada:** remover usuário significa inativar a conta (`ATIVO`/`INATIVO`); não há exclusão física pela API. |
-| OPEN-09 | **Encerrada:** o Administrador cria a conta com senha inicial; a recuperação assistida gera senha temporária e exige troca no próximo acesso (SPEC-022/023). |
+| OPEN-09 | **Encerrada:** o Administrador cria a conta com senha inicial; o titular configura um PIN pessoal de seis dígitos, armazenado como hash, para validar e redefinir a senha com token de uso único. A recuperação assistida continua disponível para contas sem PIN (SPEC-022/023). |
 | OPEN-10 | **Encerrada por escopo:** não existe atributo de uso controlado nem reserva de equipamento independente; RB-03 não é aplicada pelo fluxo atual. |
 | OPEN-11 | **Encerrada por escopo:** equipamentos aceitam somente `ATIVO`/`INATIVO`; não há status nem fluxo de manutenção implementado. |
 | OPEN-12 | Resolvido na SPEC-016: três `NO_SHOW` em 30 dias suspendem o Aluno por 7 dias; a regra é reavaliada ao término da suspensão. |
@@ -381,9 +381,9 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 - **Justificativa da posição:** instrumenta operações administrativas e alterações de perfil já implementadas sem alterar seus resultados.
 
 ### SPEC-021 — Polimento Visual e Navegação
-- **Objetivo:** corrigir temas e loading, aprimorar marca/paleta e organizar ações da conta em menu de usuário.
+- **Objetivo:** corrigir temas e loading, aprimorar marca/paleta, oferecer alternância de tema no login e organizar ações da conta em menu de usuário.
 - **Valor entregue:** interface consistente, acessível e mais fácil de navegar.
-- **RF relacionados:** refinamentos V2.1 descritos em `spec-021.md`
+- **RF relacionados:** refinamentos V2.2 descritos em `spec-021.md`
 - **RB relacionadas:** Configurações, Meu perfil e Sair ficam no menu do usuário; visão geral acessível ao Aluno.
 - **RNF aplicáveis:** RNF-04
 - **Caso de uso / fluxo:** Navegação autenticada e configurações de aparência.
@@ -395,29 +395,29 @@ Não viram Specs próprias — associados às Specs em que se aplicam, conforme 
 
 ### SPEC-022 — Perfil Completo e Troca de Senha
 - **Objetivo:** proteger o e-mail como dado imutável, completar dados pessoais, trocar senha e facilitar o envio de avatar.
-- **Valor entregue:** perfil consistente e credenciais atualizáveis com segurança.
+- **Valor entregue:** perfil consistente, credenciais atualizáveis com segurança e configuração autenticada do PIN pessoal armazenado como hash bcrypt.
 - **RF relacionados:** fluxos V2.1 descritos em `spec-022.md`
-- **RB relacionadas:** e-mail somente leitura; senha atual exigida para troca; senha temporária exige atualização.
+- **RB relacionadas:** e-mail somente leitura; senha atual exigida para troca; PIN atual exigido para alterar PIN já configurado; senha temporária exige atualização.
 - **RNF aplicáveis:** RNF-02, RNF-03, RNF-04
 - **Caso de uso / fluxo:** Meu Perfil.
-- **Entidades do modelo conceitual:** `Usuario`, `cpf`, `rg`, `data_nascimento`, `deve_trocar_senha`.
+- **Entidades do modelo conceitual:** `Usuario`, `cpf`, `rg`, `data_nascimento`, `pin_hash`, `deve_trocar_senha`.
 - **Drivers arquiteturais:** migração SQLite aditiva existente.
 - **ADRs:** nenhuma dependência nova.
 - **Dependências:** SPEC-015 e SPEC-021.
 - **Justificativa da posição:** consolida os novos dados e o fluxo de troca depois dos padrões visuais.
 
 ### SPEC-023 — Cadastro Seguro e Redefinição de Senha
-- **Objetivo:** exigir dados cadastrais validados e oferecer reset de senha com aprovação administrativa e senha temporária.
-- **Valor entregue:** cadastro mais robusto e recuperação assistida sem expor existência de contas.
-- **RF relacionados:** fluxos V2.1 descritos em `spec-023.md`
-- **RB relacionadas:** CPF validado e único; RG normalizado; reset genérico e deduplicado; troca obrigatória da senha temporária.
+- **Objetivo:** exigir dados cadastrais validados e permitir redefinição segura direta, sem remover a recuperação assistida pelo Administrador.
+- **Valor entregue:** recuperação direta por e-mail, CPF e PIN de segurança, token de uso único com expiração e política forte de senha.
+- **RF relacionados:** fluxos V2.2 descritos em `spec-023.md`
+- **RB relacionadas:** CPF validado e único; PIN de seis dígitos armazenado exclusivamente como hash bcrypt; validação sem revelar qual dado falhou; limite de tentativas; token de reset expirável/uso único; senha bcrypt; senha temporária administrativa exige troca.
 - **RNF aplicáveis:** RNF-02, RNF-03, RNF-05
-- **Caso de uso / fluxo:** UC-02 (Administrador); cadastro, solicitação de redefinição e troca pelo titular.
-- **Entidades do modelo conceitual:** `Usuario`, `NotificacaoConta`.
-- **Drivers arquiteturais:** FastAPI, SQLite e hash bcrypt existentes.
+- **Caso de uso / fluxo:** cadastro; redefinição direta pelo titular; solicitação assistida e redefinição pelo Administrador.
+- **Entidades do modelo conceitual:** `Usuario.pin_hash`, `NotificacaoConta`, `TokenResetSenha`, `TentativaResetSenha`.
+- **Drivers arquiteturais:** FastAPI, migração SQLite aditiva, token aleatório de curta duração e hash bcrypt existente.
 - **ADRs:** nenhuma dependência nova.
 - **Dependências:** SPEC-001, SPEC-002 e SPEC-022.
-- **Justificativa da posição:** o fluxo de recuperação reutiliza autenticação e perfil já protegidos.
+- **Justificativa da posição:** a validação cadastral e o token de reset mantêm a alteração de senha isolada da sessão de login; o fluxo administrativo legado permanece compatível.
 
 ### SPEC-024 — Bloqueio de Datas Passadas
 - **Objetivo:** impedir que reservas sejam solicitadas para um início no passado.

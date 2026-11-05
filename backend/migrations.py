@@ -71,6 +71,10 @@ def aplicar_migracoes(engine: Engine) -> None:
                 conexao.exec_driver_sql(
                     "ALTER TABLE usuarios ADD COLUMN data_nascimento DATE"
                 )
+            if "pin_hash" not in colunas_usuarios:
+                conexao.exec_driver_sql(
+                    "ALTER TABLE usuarios ADD COLUMN pin_hash VARCHAR(255)"
+                )
             if "deve_trocar_senha" not in colunas_usuarios:
                 conexao.exec_driver_sql(
                     "ALTER TABLE usuarios ADD COLUMN deve_trocar_senha "
@@ -184,4 +188,33 @@ def aplicar_migracoes(engine: Engine) -> None:
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_notificacao_reset_pendente "
             "ON notificacoes_conta (destinatario_id, solicitante_id) "
             "WHERE status = 'PENDENTE'"
+        )
+        conexao.exec_driver_sql(
+            "CREATE TABLE IF NOT EXISTS tokens_reset_senha ("
+            "id VARCHAR(36) PRIMARY KEY, "
+            "usuario_id VARCHAR(36) NOT NULL REFERENCES usuarios(id), "
+            "token_hash VARCHAR(64) NOT NULL, "
+            "criado_em DATETIME NOT NULL, "
+            "expira_em DATETIME NOT NULL, "
+            "consumido_em DATETIME"
+            ")"
+        )
+        conexao.exec_driver_sql(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_tokens_reset_senha_hash "
+            "ON tokens_reset_senha (token_hash)"
+        )
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_tokens_reset_senha_usuario "
+            "ON tokens_reset_senha (usuario_id, expira_em)"
+        )
+        conexao.exec_driver_sql(
+            "CREATE TABLE IF NOT EXISTS tentativas_reset_senha ("
+            "id VARCHAR(36) PRIMARY KEY, "
+            "chave_ip VARCHAR(64) NOT NULL, "
+            "criada_em DATETIME NOT NULL"
+            ")"
+        )
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_tentativas_reset_senha_chave_data "
+            "ON tentativas_reset_senha (chave_ip, criada_em)"
         )

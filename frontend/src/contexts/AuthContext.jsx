@@ -5,7 +5,7 @@ export const AuthContext = createContext();
 
 // 1. Deixe a baseURL apenas com o link principal do Codespaces (sem o /api no final)
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://turbo-broccoli-697jq47gvx57hrq5g-8000.app.github.dev/',
 });
 
 export const AuthProvider = ({ children }) => {

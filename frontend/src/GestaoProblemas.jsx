@@ -45,15 +45,15 @@ export default function GestaoProblemas({ voltar }) {
   };
 
   return (
-    <section style={{ marginTop: '20px', color: '#333333' }}>
+    <section className="content-page" aria-labelledby="problems-title">
       <button
         type="button"
+        className="content-back-button"
         onClick={voltar}
-        style={{ marginBottom: '20px', padding: '10px 14px', border: '1px solid #e0e0e0', borderRadius: '8px', cursor: 'pointer' }}
       >
         ← Voltar ao Menu
       </button>
-      <h2>Relatos de Problemas</h2>
+      <h2 id="problems-title">Relatos de Problemas</h2>
       {erro && <p role="alert" style={{ color: '#dc3545' }}>{erro}</p>}
       {sucesso && <p role="status" style={{ color: '#28a745' }}>{sucesso}</p>}
 
@@ -62,11 +62,10 @@ export default function GestaoProblemas({ voltar }) {
       ) : relatos.length === 0 ? (
         <p>Nenhum problema reportado.</p>
       ) : (
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div className="content-card-list">
           {relatos.map(relato => (
             <article
               key={relato.id}
-              style={{ padding: '16px', backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
             >
               <h3 style={{ margin: '0 0 8px' }}>{relato.recurso_nome}</h3>
               <p style={{ margin: '4px 0' }}>Recurso: {relato.tipo_recurso === 'LABORATORIO' ? 'Laboratório' : 'Equipamento'}</p>
