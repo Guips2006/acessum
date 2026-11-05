@@ -1,0 +1,36 @@
+# Dependências Node.js em qualquer pasta
+node_modules/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Ambientes virtuais Python
+.venv/
+venv/
+env/
+
+# Build gerado pelo Vite
+dist/
+build/
+
+# Avatares enviados pelos usuários
+backend/static/avatars/
+
+# Variáveis de ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Configurações locais de editores
+.vscode/
+.idea/
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
