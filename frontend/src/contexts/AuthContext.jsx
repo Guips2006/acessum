@@ -3,9 +3,8 @@ import axios from 'axios';
 
 export const AuthContext = createContext();
 
-// 1. Deixe a baseURL apenas com o link principal do Codespaces (sem o /api no final)
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://cuddly-cod-pv4qrggj7jgh6wqp-8000.app.github.dev/',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
 });
 
 export const AuthProvider = ({ children }) => {
@@ -16,7 +15,6 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (token) {
       api.defaults.headers.Authorization = `Bearer ${token}`;
-      // 2. Coloque o /api direto aqui na chamada
       api.get('/api/auth/me') 
         .then(response => setUser(response.data))
         .catch(() => logout())
@@ -42,7 +40,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return { 
         success: false, 
-        message: error.response?.data?.detail || 'Erro ao iniciar sessão' 
+        message: error.response?.data?.detail
+          || 'Não foi possível conectar à API. Verifique VITE_API_BASE_URL, se a API está em execução e se a porta está acessível.'
       };
     }
   };

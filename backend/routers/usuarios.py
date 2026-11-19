@@ -13,12 +13,20 @@ router = APIRouter(
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))]
 )
 
-@router.get("/", response_model=list[schemas.UsuarioResponse])
+@router.get(
+    "/",
+    response_model=list[schemas.UsuarioResponse],
+    summary="Listar usuários",
+)
 def listar_usuarios(db: Session = Depends(get_db)):
     """Lista todos os usuários cadastrados no sistema."""
     return db.query(models.Usuario).all()
 
-@router.post("/", response_model=schemas.UsuarioResponse)
+@router.post(
+    "/",
+    response_model=schemas.UsuarioResponse,
+    summary="Cadastrar usuário",
+)
 def criar_usuario(usuario: schemas.UsuarioCriar, db: Session = Depends(get_db)):
     """Cadastra um novo usuário (Aluno, Professor ou Administrador)."""
     email_existente = db.query(models.Usuario).filter(
@@ -49,6 +57,7 @@ def criar_usuario(usuario: schemas.UsuarioCriar, db: Session = Depends(get_db)):
 @router.patch(
     "/{usuario_id}/status",
     response_model=schemas.UsuarioStatusResponse,
+    summary="Alternar estado do usuário",
 )
 def alternar_status(usuario_id: str, db: Session = Depends(get_db)):
     """Ativa ou inativa um usuário (Soft Delete)."""

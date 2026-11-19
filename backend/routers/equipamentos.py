@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/equipamentos", tags=["Equipamentos"])
     "/",
     response_model=list[schemas.EquipamentoResponse],
     dependencies=[Depends(obter_usuario_logado)],
+    summary="Listar equipamentos",
 )
 def listar_equipamentos(db: Session = Depends(get_db)):
     """Lista os equipamentos para qualquer usuário autenticado."""
@@ -21,6 +22,7 @@ def listar_equipamentos(db: Session = Depends(get_db)):
     response_model=schemas.EquipamentoResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+    summary="Cadastrar equipamento",
 )
 def criar_equipamento(equip: schemas.EquipamentoCriar, db: Session = Depends(get_db)):
     """Cadastra um novo equipamento vinculado a um laboratório."""
@@ -68,6 +70,7 @@ def criar_equipamento(equip: schemas.EquipamentoCriar, db: Session = Depends(get
     "/{equip_id}/status",
     response_model=schemas.EquipamentoStatusResponse,
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+    summary="Alternar estado do equipamento",
 )
 def alternar_status_equipamento(equip_id: str, db: Session = Depends(get_db)):
     """Ativa ou desativa logicamente um equipamento."""

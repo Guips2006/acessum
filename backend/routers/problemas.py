@@ -42,6 +42,7 @@ def serializar_relato(relato: models.RelatoProblema) -> dict:
     "/",
     response_model=schemas.RelatoProblemaResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Registrar relato de problema",
 )
 def criar_relato_problema(
     dados: schemas.RelatoProblemaCriar,
@@ -100,6 +101,7 @@ def criar_relato_problema(
     "/",
     response_model=list[schemas.RelatoProblemaResponse],
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+    summary="Listar relatos de problemas",
 )
 def listar_relatos_problema(db: Session = Depends(get_db)):
     """Lista os relatos para o painel administrativo."""
@@ -120,6 +122,7 @@ def listar_relatos_problema(db: Session = Depends(get_db)):
     "/{relato_id}/status",
     response_model=schemas.RelatoProblemaResponse,
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+    summary="Atualizar estado do relato",
 )
 def atualizar_status_relato(
     relato_id: str,

@@ -11,7 +11,10 @@ SECRET_KEY = "chave-secreta-simples-para-teste"
 ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
+security = HTTPBearer(
+    scheme_name="BearerAuth",
+    description="Informe o JWT retornado por POST /api/auth/login.",
+)
 
 def get_password_hash(password):
     return pwd_context.hash(password)

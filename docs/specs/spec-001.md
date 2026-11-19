@@ -12,7 +12,7 @@
 ## 3. Decisões Técnicas e Arquitetura
 - **Banco de Dados:** SQLite (via SQLAlchemy ORM). Escolhido pela agilidade no desenvolvimento local sem necessidade de infraestrutura pesada (conforme ADR-003 atualizada).
 - **Criptografia de Senha:** `bcrypt` (via biblioteca `passlib`). As senhas trafegam em texto puro apenas no momento do login e são validadas contra o hash armazenado.
-- **Gerenciamento de Estado (Frontend):** Implementado utilizando a Context API do React (`AuthContext`). O token é armazenado no `localStorage` e anexado automaticamente no cabeçalho `Authorization: Bearer <token>` de todas as requisições via Axios.
+- **Gerenciamento de Estado (Frontend):** Implementado utilizando a Context API do React (`AuthContext`). Após o login, o token é armazenado no `localStorage` e enviado no cabeçalho `Authorization: Bearer <token>` nas requisições protegidas via Axios.
 
 ## 4. Estrutura de Dados (Model `Usuario`)
 A tabela `usuarios` foi criada com os seguintes atributos principais:
@@ -38,6 +38,15 @@ A interface consome os dados do `AuthContext` e utiliza operadores lógicos simp
 - **Aluno:** Vê apenas menus de Consulta de Laboratórios e Solicitação de Reserva.
 
 ## 6. Endpoints Desenvolvidos
-- `POST /api/auth/login`: Recebe `{email, senha}`, valida e retorna o token JWT.
-- `GET /api/auth/me`: Retorna os dados do usuário logado baseado no token atual.
-- `GET /setup`: Rota temporária de utilidade para injetar os primeiros usuários de teste na base de dados durante o desenvolvimento.
+- `POST /api/auth/login`: Recebe `{email, senha}`, valida as credenciais e retorna `token`, `nome`, `email` e `perfil`. Retorna `401` para credenciais inválidas ou conta inativa.
+- `GET /api/auth/me`: Retorna `id`, `nome`, `email` e `perfil` do usuário autenticado.
+
+O Swagger (`/docs`) e a especificação OpenAPI podem ser acessados sem autenticação; a proteção é aplicada às operações da API. Para testar uma operação protegida pelo Swagger:
+1. Envie credenciais válidas para `POST /api/auth/login`.
+2. Copie o valor de `token` da resposta e informe-o em **Authorize**.
+3. Execute a operação desejada. Por exemplo, `GET /api/usuarios/` exige um token de perfil `ADMINISTRADOR`.
+
+Os exemplos de requisição são ilustrativos e não representam contas válidas. A antiga rota `GET /setup` foi removida por criar credenciais padrão e poder apagar contas.
+
+### Acesso de desenvolvimento
+As senhas são armazenadas como hashes e não podem ser recuperadas. Para redefinir localmente a senha de um administrador ativo, execute `python redefinir_senha_admin_dev.py` a partir de `backend/`; a senha é solicitada sem eco, portanto os caracteres não aparecem enquanto são digitados. A senha não é gravada em documentação nem no código-fonte. A redefinição é uma operação de desenvolvimento que requer acesso direto ao banco local.
