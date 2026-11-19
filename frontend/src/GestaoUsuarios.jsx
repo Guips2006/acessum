@@ -2,7 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Copy, KeyRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
-import { dataNascimentoParaIso, formatarDataNascimento, formatarRg } from './utils/formatosCadastro';
+import { dataNascimentoParaIso, formatarDataNascimento } from './utils/formatosCadastro';
+import { mascararRG } from './utils/mascaras';
 
 const camposUsuario = {
   nome: 'Nome',
@@ -213,9 +214,9 @@ export default function GestaoUsuarios({ voltar }) {
               inputMode="text"
               autoComplete="off"
               value={form.rg}
-              onChange={e => setForm({ ...form, rg: formatarRg(e.target.value) })}
-              placeholder="00.000.000-0"
-              maxLength={30}
+              onChange={e => setForm({ ...form, rg: mascararRG(e.target.value) })}
+              placeholder="00.000.000-X"
+              maxLength={12}
               required
             />
           </label>

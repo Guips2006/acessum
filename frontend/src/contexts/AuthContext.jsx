@@ -5,7 +5,7 @@ export const AuthContext = createContext();
 
 // Use a API local por padrão; sobrescreva com VITE_API_BASE_URL se necessário.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://glowing-trout-974prj4964v93xwxq-8000.app.github.dev/',
   timeout: 15000,
 });
 

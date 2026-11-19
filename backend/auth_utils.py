@@ -55,13 +55,27 @@ def obter_usuario_logado(
 
     rotas_troca_obrigatoria = {
         "/api/auth/me",
+        "/api/auth/logout",
         "/api/auth/alterar-senha",
         "/api/auth/alterar-senha-temporaria",
+        "/api/perfil/pin",
     }
     if user.deve_trocar_senha and request.url.path not in rotas_troca_obrigatoria:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Altere sua senha temporária antes de continuar.",
+        )
+
+    rotas_pin_liberadas = {
+        "/api/auth/me",
+        "/api/auth/logout",
+        "/api/perfil/pin",
+        "/api/auth/alterar-senha",
+    }
+    if not user.pin_hash and request.url.path not in rotas_pin_liberadas:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="É obrigatório cadastrar o PIN de segurança antes de acessar o sistema.",
         )
 
     agora_utc = datetime.now(timezone.utc).replace(tzinfo=None)

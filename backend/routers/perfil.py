@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from auth_utils import obter_usuario_logado
+from auth_utils import get_password_hash, obter_usuario_logado
 from auditoria_service import registrar_log
 from database import get_db
 import models
@@ -25,6 +25,17 @@ FORMATOS_AVATAR = {
     "image/jpeg": ("JPEG", ".jpg"),
     "image/png": ("PNG", ".png"),
 }
+
+
+@router.put("/pin")
+def atualizar_pin(
+    dados: schemas.PinSegurancaAtualizar,
+    usuario: models.Usuario = Depends(obter_usuario_logado),
+    db: Session = Depends(get_db),
+):
+    usuario.pin_hash = get_password_hash(dados.pin)
+    db.commit()
+    return {"mensagem": "PIN de segurança cadastrado com sucesso.", "pin_definido": True}
 
 
 def serializar_perfil(usuario: models.Usuario) -> schemas.PerfilUsuarioResponse:
@@ -112,7 +123,7 @@ def remover_avatar_anterior(url: str | None) -> None:
 async def atualizar_meu_perfil(
     nome: str = Form(..., min_length=1, max_length=100),
     cpf: str = Form(..., min_length=11, max_length=14),
-    rg: str = Form(..., min_length=5, max_length=30),
+    rg: str = Form(..., min_length=1, max_length=12),
     data_nascimento: date = Form(...),
     avatar: UploadFile | None = File(default=None),
     usuario: models.Usuario = Depends(obter_usuario_logado),

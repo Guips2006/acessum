@@ -17,12 +17,17 @@ function lerPreferencias() {
 
 export function ThemeProvider({ children }) {
   const [preferencias, setPreferencias] = useState(lerPreferencias);
+  const tema = preferencias.altoContraste
+    ? 'high-contrast'
+    : preferencias.modoEscuro
+      ? 'dark'
+      : 'light';
 
   useEffect(() => {
-    document.documentElement.dataset.theme = preferencias.modoEscuro ? 'escuro' : 'claro';
+    document.documentElement.dataset.theme = tema;
     document.documentElement.dataset.contraste = preferencias.altoContraste ? 'alto' : 'normal';
     localStorage.setItem(PREFERENCIAS_TEMA_KEY, JSON.stringify(preferencias));
-  }, [preferencias]);
+  }, [preferencias, tema]);
 
   const alternarModoEscuro = () => {
     setPreferencias(atual => ({ ...atual, modoEscuro: !atual.modoEscuro }));
@@ -32,8 +37,27 @@ export function ThemeProvider({ children }) {
     setPreferencias(atual => ({ ...atual, altoContraste: !atual.altoContraste }));
   };
 
+  const alternarTema = () => {
+    setPreferencias(atual => {
+      const temaAtual = atual.altoContraste
+        ? 'high-contrast'
+        : atual.modoEscuro
+          ? 'dark'
+          : 'light';
+      const proximoTema = {
+        light: 'dark',
+        dark: 'high-contrast',
+        'high-contrast': 'light',
+      }[temaAtual];
+      return {
+        modoEscuro: proximoTema === 'dark',
+        altoContraste: proximoTema === 'high-contrast',
+      };
+    });
+  };
+
   return (
-    <ThemeContext.Provider value={{ ...preferencias, alternarModoEscuro, alternarAltoContraste }}>
+    <ThemeContext.Provider value={{ ...preferencias, tema, alternarModoEscuro, alternarAltoContraste, alternarTema }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -21,6 +21,7 @@ class Usuario(Base):
     nome = Column(String(100))
     email = Column(String(100), unique=True)
     senha_hash = Column(String(255))
+    pin_hash = Column(String(255), nullable=True)
     perfil = Column(String(20), default="ADMINISTRADOR")
     status = Column(String(20), default="ATIVO")
     avatar_url = Column(String(500), nullable=True)
@@ -30,6 +31,36 @@ class Usuario(Base):
     rg = Column(String(30), nullable=True)
     data_nascimento = Column(Date, nullable=True)
     deve_trocar_senha = Column(Boolean, default=False, nullable=False, server_default="0")
+
+    @property
+    def pin_definido(self) -> bool:
+        return bool(self.pin_hash)
+
+
+class TokenResetSenha(Base):
+    __tablename__ = "tokens_reset_senha"
+    __table_args__ = (
+        Index("ix_tokens_reset_senha_usuario", "usuario_id", "usado_em"),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    usuario_id = Column(String(36), ForeignKey("usuarios.id"), nullable=False)
+    token_hash = Column(String(64), nullable=False, unique=True)
+    expira_em = Column(DateTime, nullable=False)
+    usado_em = Column(DateTime, nullable=True)
+    criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class TentativaResetSenha(Base):
+    __tablename__ = "tentativas_reset_senha"
+    __table_args__ = (Index("ix_tentativas_reset_senha_bloqueado", "bloqueado_ate"),)
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    identificador = Column(String(254), nullable=False, unique=True)
+    tentativas = Column(Integer, nullable=False, default=0, server_default="0")
+    bloqueado_ate = Column(DateTime, nullable=True)
+    atualizado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+
 
 class Laboratorio(Base):
     __tablename__ = "laboratorios"

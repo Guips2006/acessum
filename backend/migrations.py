@@ -76,10 +76,42 @@ def aplicar_migracoes(engine: Engine) -> None:
                     "ALTER TABLE usuarios ADD COLUMN deve_trocar_senha "
                     "BOOLEAN NOT NULL DEFAULT 0"
                 )
+            if "pin_hash" not in colunas_usuarios:
+                conexao.exec_driver_sql(
+                    "ALTER TABLE usuarios ADD COLUMN pin_hash VARCHAR(255)"
+                )
             conexao.exec_driver_sql(
                 "CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_cpf_not_null "
                 "ON usuarios (cpf) WHERE cpf IS NOT NULL"
             )
+
+        conexao.exec_driver_sql(
+            "CREATE TABLE IF NOT EXISTS tokens_reset_senha ("
+            "id VARCHAR(36) PRIMARY KEY, "
+            "usuario_id VARCHAR(36) NOT NULL REFERENCES usuarios(id), "
+            "token_hash VARCHAR(64) NOT NULL UNIQUE, "
+            "expira_em DATETIME NOT NULL, "
+            "usado_em DATETIME, "
+            "criado_em DATETIME NOT NULL"
+            ")"
+        )
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_tokens_reset_senha_usuario "
+            "ON tokens_reset_senha (usuario_id, usado_em)"
+        )
+        conexao.exec_driver_sql(
+            "CREATE TABLE IF NOT EXISTS tentativas_reset_senha ("
+            "id VARCHAR(36) PRIMARY KEY, "
+            "identificador VARCHAR(254) NOT NULL UNIQUE, "
+            "tentativas INTEGER NOT NULL DEFAULT 0, "
+            "bloqueado_ate DATETIME, "
+            "atualizado_em DATETIME NOT NULL"
+            ")"
+        )
+        conexao.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_tentativas_reset_senha_bloqueado "
+            "ON tentativas_reset_senha (bloqueado_ate)"
+        )
 
         conexao.exec_driver_sql(
             "CREATE TABLE IF NOT EXISTS notificacoes ("

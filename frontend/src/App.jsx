@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useContext, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Eye, EyeOff, FlaskConical, LogOut, Settings, UserRound } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, FlaskConical, LockKeyhole, LogOut, Moon, Settings, Sun, UserRound } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
+import { useTheme } from './contexts/ThemeContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import Configuracoes from './Configuracoes';
 import MeuPerfil from './MeuPerfil';
@@ -13,6 +14,7 @@ import AnalisarReservas from './AnalisarReservas';
 import HistoricoReservas from './HistoricoReservas';
 import SininhoNotificacoes from './SininhoNotificacoes';
 import Auditoria from './Auditoria';
+import { mascararCPF, mascararRG } from './utils/mascaras';
 
 const DashboardAdmin = lazy(() => import('./DashboardAdmin.jsx'));
 
@@ -21,18 +23,184 @@ const navegacaoAluno = [
   { tela: 'HISTORICO_RESERVAS', icon: '▤', label: 'Minhas reservas' },
 ];
 
+const obterTelasPermitidas = (perfil) => [
+  'MENU',
+  'CONFIGURACOES',
+  'MEU_PERFIL',
+  ...(['ALUNO', 'PROFESSOR'].includes(perfil)
+    ? ['CONSULTA_RECURSOS', 'HISTORICO_RESERVAS']
+    : []),
+  ...(perfil === 'PROFESSOR' ? ['ANALISAR_RESERVAS'] : []),
+  ...(perfil === 'ADMINISTRADOR'
+    ? [
+      'DASHBOARD_ADMIN',
+      'AUDITORIA',
+      'GESTAO_USUARIOS',
+      'GESTAO_LABORATORIOS',
+      'GESTAO_EQUIPAMENTOS',
+      'GESTAO_PROBLEMAS',
+    ]
+    : []),
+];
+
+function AlternadorTema() {
+  const { tema, alternarTema } = useTheme();
+  const nomeTema = {
+    light: 'Claro',
+    dark: 'Escuro',
+    'high-contrast': 'Alto contraste',
+  }[tema];
+  const proximoTema = {
+    light: 'Escuro',
+    dark: 'Alto contraste',
+    'high-contrast': 'Claro',
+  }[tema];
+
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={alternarTema}
+      aria-label={`Tema atual: ${nomeTema}. Ativar ${proximoTema}.`}
+      title={`Tema atual: ${nomeTema}`}
+    >
+      {tema === 'dark' ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
+      <span>{nomeTema}</span>
+    </button>
+  );
+}
+
+function CadastroPinObrigatorio({ api, aoSalvar }) {
+  const [pin, setPin] = useState('');
+  const [confirmarPin, setConfirmarPin] = useState('');
+  const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const campoPinRef = useRef(null);
+
+  useEffect(() => campoPinRef.current?.focus(), []);
+
+  const salvarPin = async (evento) => {
+    evento.preventDefault();
+    setErro('');
+    if (pin.length !== 6 || confirmarPin.length !== 6) {
+      setErro('O PIN deve conter exatamente 6 dígitos numéricos.');
+      return;
+    }
+    if (pin !== confirmarPin) {
+      setErro('Os PINs informados não são iguais.');
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      await api.put('/api/perfil/pin', { pin, confirmar_pin: confirmarPin });
+      aoSalvar({ pin_definido: true });
+    } catch (falha) {
+      const detalhe = falha.response?.data?.detail;
+      setErro(Array.isArray(detalhe) ? detalhe.map(item => item.msg).join(' ') : detalhe || 'Não foi possível cadastrar o PIN. Tente novamente.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const tratarTecla = (evento) => {
+    if (evento.key === 'Escape') {
+      evento.preventDefault();
+      evento.stopPropagation();
+    }
+  };
+
+  return (
+    <main className="pin-required-page">
+      <section
+        className="pin-required-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pin-required-title"
+        onKeyDown={tratarTecla}
+      >
+        <div className="login-header">
+          <div className="login-brand">
+            <span className="brand-mark"><FlaskConical size={21} aria-hidden="true" /></span>
+            <span className="brand-name">acessum<span>.</span></span>
+          </div>
+          <AlternadorTema />
+        </div>
+        <span className="eyebrow">PROTEÇÃO DA CONTA</span>
+        <h1 id="pin-required-title">Cadastre seu PIN de segurança</h1>
+        <p className="login-description">Antes de acessar o sistema, crie um PIN numérico de 6 dígitos e confirme-o.</p>
+        {erro && <p className="feedback feedback-error" role="alert">{erro}</p>}
+        <form className="pin-required-form" onSubmit={salvarPin}>
+          <label htmlFor="pin-security">PIN de segurança</label>
+          <input
+            ref={campoPinRef}
+            id="pin-security"
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            maxLength={6}
+            aria-required="true"
+            value={pin}
+            onChange={evento => setPin(evento.target.value.replace(/\D/g, '').slice(0, 6))}
+          />
+          <label htmlFor="pin-security-confirm">Confirmar PIN</label>
+          <input
+            id="pin-security-confirm"
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            maxLength={6}
+            aria-required="true"
+            value={confirmarPin}
+            onChange={evento => setConfirmarPin(evento.target.value.replace(/\D/g, '').slice(0, 6))}
+          />
+          <small>Use exatamente 6 números. O PIN será solicitado para proteger o acesso à sua conta.</small>
+          <button type="submit" className="button-primary" disabled={salvando}>
+            {salvando ? 'Salvando PIN...' : <><LockKeyhole size={17} aria-hidden="true" /> Salvar PIN e continuar</>}
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
 export default function App() {
-  const { user, login, logout, loading, api } = useContext(AuthContext);
+  const { user, login, logout, loading, api, atualizarUsuario } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [entrando, setEntrando] = useState(false);
   const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const [modoReset, setModoReset] = useState(false);
+  const [etapaReset, setEtapaReset] = useState(1);
+  const [emailReset, setEmailReset] = useState('');
+  const [cpfReset, setCpfReset] = useState('');
+  const [rgReset, setRgReset] = useState('');
+  const [pinReset, setPinReset] = useState('');
+  const [tokenReset, setTokenReset] = useState('');
+  const [novaSenhaReset, setNovaSenhaReset] = useState('');
+  const [confirmarSenhaReset, setConfirmarSenhaReset] = useState('');
   const [solicitandoReset, setSolicitandoReset] = useState(false);
-  const [resetSolicitado, setResetSolicitado] = useState(false);
+  const [resetConcluido, setResetConcluido] = useState(false);
   const [menuUsuarioAberto, setMenuUsuarioAberto] = useState(false);
-  const [telaAtiva, setTelaAtiva] = useState('MENU'); // Controle de qual tela mostrar
+  const [navegacao, setNavegacao] = useState({ usuarioId: null, tela: 'MENU' });
+  const usuarioIdAtual = user?.id ?? null;
+  const telaAtiva = navegacao.usuarioId === usuarioIdAtual ? navegacao.tela : 'MENU';
+  const setTelaAtiva = (tela) => {
+    setNavegacao({ usuarioId: usuarioIdAtual, tela });
+  };
   const menuUsuarioRef = useRef(null);
+
+  useEffect(() => {
+    const telasPermitidas = user ? obterTelasPermitidas(user.perfil) : [];
+    if (
+      navegacao.usuarioId !== usuarioIdAtual
+      || (user && !telasPermitidas.includes(navegacao.tela))
+    ) {
+      setNavegacao({ usuarioId: usuarioIdAtual, tela: 'MENU' });
+      setMenuUsuarioAberto(false);
+    }
+  }, [user?.id, user?.perfil, navegacao, usuarioIdAtual, user]);
 
   useEffect(() => {
     if (!menuUsuarioAberto) return undefined;
@@ -66,19 +234,67 @@ export default function App() {
     }
   };
 
-  const handleEsqueciSenha = async () => {
+  const iniciarResetSenha = () => {
     setErro('');
-    setResetSolicitado(false);
-    if (!email.trim()) {
-      setErro('Informe seu e-mail para solicitar a redefinição.');
-      return;
-    }
+    setResetConcluido(false);
+    setEmailReset(email);
+    setModoReset(true);
+    setEtapaReset(1);
+  };
+
+  const voltarLogin = () => {
+    setModoReset(false);
+    setEtapaReset(1);
+    setErro('');
+    setCpfReset('');
+    setRgReset('');
+    setTokenReset('');
+    setPinReset('');
+    setNovaSenhaReset('');
+    setConfirmarSenhaReset('');
+  };
+
+  const validarDadosReset = async (evento) => {
+    evento.preventDefault();
+    setErro('');
     setSolicitandoReset(true);
     try {
-      await api.post('/api/auth/esqueci-senha', { email });
-      setResetSolicitado(true);
+      const resposta = await api.post('/api/auth/validar-dados-reset', {
+        email: emailReset,
+        cpf: cpfReset,
+        rg: rgReset,
+        pin: pinReset,
+      });
+      setTokenReset(resposta.data.token);
+      setEtapaReset(2);
+      setCpfReset('');
+      setRgReset('');
     } catch (falha) {
-      setErro(falha.response?.data?.detail || 'Não foi possível registrar a solicitação.');
+      const detalhe = falha.response?.data?.detail;
+      setErro(typeof detalhe === 'string' ? detalhe : 'Não foi possível validar os dados informados.');
+    } finally {
+      setSolicitandoReset(false);
+      setPinReset('');
+    }
+  };
+
+  const redefinirSenha = async (evento) => {
+    evento.preventDefault();
+    setErro('');
+    setSolicitandoReset(true);
+    try {
+      await api.post('/api/auth/redefinir-senha', {
+        token: tokenReset,
+        nova_senha: novaSenhaReset,
+        confirmar_senha: confirmarSenhaReset,
+      });
+      setSenha('');
+      setEmail(emailReset);
+      voltarLogin();
+      setResetConcluido(true);
+    } catch (falha) {
+      const detalhe = falha.response?.data?.detail;
+      setErro(typeof detalhe === 'string' ? detalhe : 'Não foi possível redefinir a senha. Verifique os dados.');
     } finally {
       setSolicitandoReset(false);
     }
@@ -86,6 +302,8 @@ export default function App() {
 
   const handleLogout = () => {
     // 1. Chama a função de logout do contexto (remove token, altera estado do user)
+    setNavegacao({ usuarioId: null, tela: 'MENU' });
+    setMenuUsuarioAberto(false);
     logout();
 
     // 2. Limpa os estados locais do formulário
@@ -95,6 +313,10 @@ export default function App() {
   };
 
   if (user) {
+    if (user.pin_definido === false) {
+      return <CadastroPinObrigatorio api={api} aoSalvar={atualizarUsuario} />;
+    }
+
     if (user.deve_trocar_senha) {
       return (
         <main className="forced-password-page">
@@ -112,6 +334,8 @@ export default function App() {
       );
     }
 
+    const telasPermitidas = obterTelasPermitidas(user.perfil);
+    const telaAtual = telasPermitidas.includes(telaAtiva) ? telaAtiva : 'MENU';
     const nomeTela = {
       MENU: 'Visão geral',
       CONSULTA_RECURSOS: 'Explorar recursos',
@@ -125,7 +349,7 @@ export default function App() {
       MEU_PERFIL: 'Meu perfil',
       DASHBOARD_ADMIN: 'Dashboard',
       AUDITORIA: 'Auditoria',
-    }[telaAtiva] || 'Acessum';
+    }[telaAtual] || 'Acessum';
     const avatarUrl = user.avatar_url
       ? new URL(user.avatar_url, api.defaults.baseURL).toString()
       : '';
@@ -134,7 +358,7 @@ export default function App() {
       <button
         key={tela}
         type="button"
-        className={`sidebar-link${telaAtiva === tela ? ' is-active' : ''}`}
+        className={`sidebar-link${telaAtual === tela ? ' is-active' : ''}`}
         onClick={() => setTelaAtiva(tela)}
       >
         <span className="sidebar-icon" aria-hidden="true">{icon}</span>
@@ -187,6 +411,7 @@ export default function App() {
             </div>
             <div className="topbar-profile">
               <SininhoNotificacoes />
+              <AlternadorTema />
               <span className={`status-indicator${user.status === 'SUSPENSO' ? ' is-suspended' : ''}`} />
               <span>{user.status === 'SUSPENSO' ? 'Conta suspensa' : 'Sessão ativa'}</span>
               <div className="user-menu" ref={menuUsuarioRef}>
@@ -227,43 +452,43 @@ export default function App() {
           </header>
 
           <main className="app-content">
-            {telaAtiva === 'GESTAO_USUARIOS' && user.perfil === 'ADMINISTRADOR' && (
+            {telaAtual === 'GESTAO_USUARIOS' && user.perfil === 'ADMINISTRADOR' && (
               <GestaoUsuarios voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'GESTAO_LABORATORIOS' && (
+            {telaAtual === 'GESTAO_LABORATORIOS' && user.perfil === 'ADMINISTRADOR' && (
               <GestaoLaboratorios voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'GESTAO_EQUIPAMENTOS' && (
+            {telaAtual === 'GESTAO_EQUIPAMENTOS' && user.perfil === 'ADMINISTRADOR' && (
               <GestaoEquipamentos voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'GESTAO_PROBLEMAS' && user.perfil === 'ADMINISTRADOR' && (
+            {telaAtual === 'GESTAO_PROBLEMAS' && user.perfil === 'ADMINISTRADOR' && (
               <GestaoProblemas voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'DASHBOARD_ADMIN' && user.perfil === 'ADMINISTRADOR' && (
+            {telaAtual === 'DASHBOARD_ADMIN' && user.perfil === 'ADMINISTRADOR' && (
               <Suspense fallback={<LoadingSpinner label="Carregando dashboard..." />}>
                 <DashboardAdmin voltar={() => setTelaAtiva('MENU')} />
               </Suspense>
             )}
-            {telaAtiva === 'AUDITORIA' && user.perfil === 'ADMINISTRADOR' && (
+            {telaAtual === 'AUDITORIA' && user.perfil === 'ADMINISTRADOR' && (
               <Auditoria voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'ANALISAR_RESERVAS' && user.perfil === 'PROFESSOR' && (
+            {telaAtual === 'ANALISAR_RESERVAS' && user.perfil === 'PROFESSOR' && (
               <AnalisarReservas voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'HISTORICO_RESERVAS' && ['ALUNO', 'PROFESSOR'].includes(user.perfil) && (
+            {telaAtual === 'HISTORICO_RESERVAS' && ['ALUNO', 'PROFESSOR'].includes(user.perfil) && (
               <HistoricoReservas voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'CONSULTA_RECURSOS' && ['ALUNO', 'PROFESSOR'].includes(user.perfil) && (
+            {telaAtual === 'CONSULTA_RECURSOS' && ['ALUNO', 'PROFESSOR'].includes(user.perfil) && (
               <ConsultaRecursos voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'CONFIGURACOES' && (
+            {telaAtual === 'CONFIGURACOES' && (
               <Configuracoes voltar={() => setTelaAtiva('MENU')} />
             )}
-            {telaAtiva === 'MEU_PERFIL' && (
+            {telaAtual === 'MEU_PERFIL' && (
               <MeuPerfil voltar={() => setTelaAtiva('MENU')} />
             )}
 
-            {telaAtiva === 'MENU' && (
+            {telaAtual === 'MENU' && (
               <section className="dashboard-view">
                 <div className="welcome-panel">
                   <div className="welcome-copy">
@@ -351,45 +576,150 @@ export default function App() {
   return (
     <main className="login-page">
       <section className="login-panel">
-        <div className="login-brand">
-          <span className="brand-mark"><FlaskConical size={21} aria-hidden="true" /></span>
-          <span className="brand-name">acessum<span>.</span></span>
-        </div>
-        <span className="eyebrow">GESTÃO DE LABORATÓRIOS</span>
-        <h1>Bem-vindo de volta</h1>
-        <p className="login-description">Entre com a sua conta para aceder aos espaços e reservas.</p>
-        {erro && <p className="feedback feedback-error" role="alert">{typeof erro === 'string' ? erro : 'Erro de validação no login. Verifique os dados.'}</p>}
-        <form onSubmit={handleLogin} className="login-form">
-          <label htmlFor="login-email">E-mail</label>
-          <input
-            id="login-email"
-            autoComplete="username"
-            placeholder="nome@instituicao.edu"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <label htmlFor="login-password">Senha</label>
-          <div className="password-input-wrap">
-            <input
-              id="login-password"
-              type={senhaVisivel ? 'text' : 'password'}
-              autoComplete="current-password"
-              placeholder="Sua senha"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-            />
-            <button type="button" className="password-visibility-toggle" onClick={() => setSenhaVisivel(atual => !atual)} aria-label={senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'}>
-              {senhaVisivel ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-            </button>
+        <div className="login-header">
+          <div className="login-brand">
+            <span className="brand-mark"><FlaskConical size={21} aria-hidden="true" /></span>
+            <span className="brand-name">acessum<span>.</span></span>
           </div>
-          <button type="submit" className="button-primary login-submit" disabled={entrando}>
-            {entrando ? <LoadingSpinner label="Entrando..." inline /> : 'Entrar na plataforma'}
-          </button>
-        </form>
-        <button type="button" className="forgot-password-link" onClick={handleEsqueciSenha} disabled={solicitandoReset}>
-          {solicitandoReset ? 'Enviando solicitação...' : 'Esqueci minha senha'}
-        </button>
-        {resetSolicitado && <p className="feedback feedback-success" role="status">Se houver uma conta ativa para este e-mail, o Administrador receberá a solicitação.</p>}
+          <AlternadorTema />
+        </div>
+        <span className="eyebrow">{modoReset ? 'RECUPERAÇÃO DE ACESSO' : 'GESTÃO DE LABORATÓRIOS'}</span>
+        <h1>{modoReset ? (etapaReset === 1 ? 'Validação cadastral' : 'Defina uma nova senha') : 'Bem-vindo de volta'}</h1>
+        <p className="login-description">
+          {modoReset
+            ? etapaReset === 1
+              ? 'Confirme os quatro dados cadastrados para validar sua identidade.'
+              : 'Escolha uma senha segura para recuperar o acesso à sua conta.'
+            : 'Entre com a sua conta para aceder aos espaços e reservas.'}
+        </p>
+        {erro && <p className="feedback feedback-error" role="alert">{typeof erro === 'string' ? erro : 'Erro de validação no login. Verifique os dados.'}</p>}
+        {resetConcluido && <p className="feedback feedback-success" role="status">Senha redefinida com sucesso. Faça login com sua nova senha.</p>}
+        {modoReset ? (
+          etapaReset === 1 ? (
+            <form onSubmit={validarDadosReset} className="login-form">
+              <label htmlFor="reset-email">E-mail</label>
+              <input
+                id="reset-email"
+                type="email"
+                autoComplete="email"
+                required
+                value={emailReset}
+                onChange={evento => setEmailReset(evento.target.value)}
+              />
+              <label htmlFor="reset-cpf">CPF</label>
+              <input
+                id="reset-cpf"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={14}
+                placeholder="000.000.000-00"
+                required
+                value={cpfReset}
+                onChange={evento => setCpfReset(mascararCPF(evento.target.value))}
+              />
+              <label htmlFor="reset-rg">RG</label>
+              <input
+                id="reset-rg"
+                autoComplete="off"
+                maxLength={12}
+                placeholder="00.000.000-X"
+                required
+                value={rgReset}
+                onChange={evento => setRgReset(mascararRG(evento.target.value))}
+              />
+              <label htmlFor="reset-pin">PIN de Segurança</label>
+              <input
+                id="reset-pin"
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={6}
+                required
+                value={pinReset}
+                onChange={evento => setPinReset(evento.target.value.replace(/\D/g, '').slice(0, 6))}
+              />
+              <button type="submit" className="button-primary login-submit" disabled={solicitandoReset}>
+                {solicitandoReset ? <LoadingSpinner label="Validando dados..." inline /> : 'Validar dados'}
+              </button>
+              <button type="button" className="forgot-password-link" onClick={voltarLogin} disabled={solicitandoReset}>
+                Voltar para o login
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={redefinirSenha} className="login-form">
+              <label htmlFor="reset-new-password">Nova Senha</label>
+              <input
+                id="reset-new-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={novaSenhaReset}
+                onChange={evento => setNovaSenhaReset(evento.target.value)}
+              />
+              <ul className="password-requirements" aria-label="Requisitos da nova senha">
+                {[
+                  ['Pelo menos 8 caracteres', novaSenhaReset.length >= 8],
+                  ['Uma letra maiúscula', /\p{Lu}/u.test(novaSenhaReset)],
+                  ['Uma letra minúscula', /\p{Ll}/u.test(novaSenhaReset)],
+                  ['Um número', /\p{Nd}/u.test(novaSenhaReset)],
+                  ['Um caractere especial', /[^\p{L}\p{N}\s]/u.test(novaSenhaReset)],
+                ].map(([requisito, atendido]) => (
+                  <li key={requisito} className={atendido ? 'is-met' : ''}>
+                    <span aria-hidden="true">{atendido ? '✓' : '○'}</span> {requisito}
+                  </li>
+                ))}
+              </ul>
+              <label htmlFor="reset-confirm-password">Confirmar Nova Senha</label>
+              <input
+                id="reset-confirm-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={confirmarSenhaReset}
+                onChange={evento => setConfirmarSenhaReset(evento.target.value)}
+              />
+              <button type="submit" className="button-primary login-submit" disabled={solicitandoReset}>
+                {solicitandoReset ? <LoadingSpinner label="Redefinindo senha..." inline /> : 'Redefinir senha'}
+              </button>
+              <button type="button" className="forgot-password-link" onClick={voltarLogin} disabled={solicitandoReset}>
+                Voltar para o login
+              </button>
+            </form>
+          )
+        ) : (
+          <>
+            <form onSubmit={handleLogin} className="login-form">
+              <label htmlFor="login-email">E-mail</label>
+              <input
+                id="login-email"
+                autoComplete="username"
+                placeholder="nome@instituicao.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <label htmlFor="login-password">Senha</label>
+              <div className="password-input-wrap">
+                <input
+                  id="login-password"
+                  type={senhaVisivel ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="Sua senha"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                />
+                <button type="button" className="password-visibility-toggle" onClick={() => setSenhaVisivel(atual => !atual)} aria-label={senhaVisivel ? 'Ocultar senha' : 'Mostrar senha'}>
+                  {senhaVisivel ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </button>
+              </div>
+              <button type="submit" className="button-primary login-submit" disabled={entrando}>
+                {entrando ? <LoadingSpinner label="Entrando..." inline /> : 'Entrar na plataforma'}
+              </button>
+            </form>
+            <button type="button" className="forgot-password-link" onClick={iniciarResetSenha}>
+              Esqueci minha senha
+            </button>
+          </>
+        )}
         <p className="login-footnote">Acesso seguro para a comunidade Acessum.</p>
       </section>
       <aside className="login-aside">

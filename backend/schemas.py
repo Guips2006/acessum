@@ -4,12 +4,24 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+
+def normalizar_rg_validado(rg: str | None) -> str | None:
+    if rg is None:
+        return None
+    if len(rg) > 12 or not re.fullmatch(r"[0-9Xx.-]+", rg):
+        raise ValueError("O RG deve conter apenas números, a letra X, pontos e hífen.")
+    normalizado = re.sub(r"[.-]", "", rg).upper()
+    if not 5 <= len(normalizado) <= 9:
+        raise ValueError("O RG deve conter entre 5 e 9 caracteres alfanuméricos.")
+    return normalizado
+
+
 class UsuarioBase(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     email: str = Field(min_length=3, max_length=100)
     perfil: Literal["ADMINISTRADOR", "PROFESSOR", "ALUNO"]
     cpf: str | None = None
-    rg: str | None = Field(default=None, min_length=5, max_length=30)
+    rg: str | None = Field(default=None, min_length=1, max_length=12)
     data_nascimento: date | None = None
 
     @field_validator("nome")
@@ -47,12 +59,7 @@ class UsuarioBase(BaseModel):
     @field_validator("rg")
     @classmethod
     def normalizar_rg(cls, rg: str | None) -> str | None:
-        if rg is None:
-            return None
-        normalizado = re.sub(r"[^0-9A-Za-z]", "", rg).upper()
-        if len(normalizado) < 5 or len(normalizado) > 20:
-            raise ValueError("Informe um RG válido.")
-        return normalizado
+        return normalizar_rg_validado(rg)
 
     @field_validator("data_nascimento")
     @classmethod
@@ -63,7 +70,7 @@ class UsuarioBase(BaseModel):
 
 class UsuarioCriar(UsuarioBase):
     cpf: str = Field(min_length=11, max_length=14)
-    rg: str = Field(min_length=5, max_length=30)
+    rg: str = Field(min_length=1, max_length=12)
     data_nascimento: date
     senha: str = Field(min_length=12, max_length=72)
 
@@ -83,6 +90,7 @@ class UsuarioResponse(UsuarioBase):
     status: Literal["ATIVO", "INATIVO", "SUSPENSO"]
     suspensao_ate: datetime | None = None
     deve_trocar_senha: bool = False
+    pin_definido: bool = False
 
     class Config:
         from_attributes = True
@@ -94,7 +102,7 @@ class UsuarioStatusResponse(BaseModel):
 class PerfilUsuarioAtualizar(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     cpf: str = Field(min_length=11, max_length=14)
-    rg: str = Field(min_length=5, max_length=30)
+    rg: str = Field(min_length=1, max_length=12)
     data_nascimento: date
 
     @field_validator("nome")
@@ -113,7 +121,7 @@ class PerfilUsuarioAtualizar(BaseModel):
     @field_validator("rg")
     @classmethod
     def validar_rg_perfil(cls, rg: str) -> str:
-        return UsuarioBase.normalizar_rg(rg)
+        return normalizar_rg_validado(rg)
 
     @field_validator("data_nascimento")
     @classmethod
@@ -134,6 +142,25 @@ class PerfilUsuarioResponse(BaseModel):
     data_nascimento: date | None
     deve_trocar_senha: bool
 
+
+class PinSegurancaAtualizar(BaseModel):
+    pin: str
+    confirmar_pin: str
+
+    @field_validator("pin", "confirmar_pin")
+    @classmethod
+    def validar_pin(cls, pin: str) -> str:
+        if not re.fullmatch(r"[0-9]{6}", pin):
+            raise ValueError("O PIN deve conter exatamente 6 dígitos numéricos.")
+        return pin
+
+    @model_validator(mode="after")
+    def validar_confirmacao_pin(self):
+        if self.pin != self.confirmar_pin:
+            raise ValueError("Os PINs informados não são iguais.")
+        return self
+
+
 class AlterarSenha(BaseModel):
     senha_atual: str = Field(min_length=1, max_length=72)
     nova_senha: str = Field(min_length=12, max_length=72)
@@ -145,7 +172,7 @@ class AlterarSenha(BaseModel):
 
 class AlterarSenhaTemporaria(BaseModel):
     cpf: str = Field(min_length=11, max_length=14)
-    rg: str = Field(min_length=5, max_length=30)
+    rg: str = Field(min_length=1, max_length=12)
     data_nascimento: date
     nova_senha: str = Field(min_length=12, max_length=72)
 
@@ -157,7 +184,7 @@ class AlterarSenhaTemporaria(BaseModel):
     @field_validator("rg")
     @classmethod
     def normalizar_rg(cls, rg: str) -> str:
-        return re.sub(r"[^0-9A-Za-z]", "", rg).upper()
+        return normalizar_rg_validado(rg)
 
     @field_validator("nova_senha")
     @classmethod
@@ -178,6 +205,75 @@ class EsqueciSenhaRequest(BaseModel):
     @classmethod
     def normalizar_email_reset(cls, email: str) -> str:
         return UsuarioBase.normalizar_e_validar_email(email)
+
+
+class ValidarDadosResetRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=100)
+    cpf: str = Field(min_length=1, max_length=14)
+    rg: str = Field(min_length=1, max_length=12)
+    pin: str
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email_validacao_reset(cls, email: str) -> str:
+        return UsuarioBase.normalizar_e_validar_email(email)
+
+    @field_validator("cpf")
+    @classmethod
+    def normalizar_cpf_reset(cls, cpf: str) -> str:
+        digitos = re.sub(r"\D", "", cpf)
+        if len(digitos) != 11:
+            raise ValueError("O CPF deve conter 11 dígitos.")
+        return digitos
+
+    @field_validator("rg")
+    @classmethod
+    def normalizar_rg_reset(cls, rg: str) -> str:
+        normalizado = re.sub(r"[^0-9A-Za-z]", "", rg).upper()
+        if not 1 <= len(normalizado) <= 9:
+            raise ValueError("O RG deve conter até 9 caracteres alfanuméricos.")
+        return normalizado
+
+    @field_validator("pin")
+    @classmethod
+    def validar_pin_reset(cls, pin: str) -> str:
+        if not re.fullmatch(r"[0-9]{6}", pin):
+            raise ValueError("O PIN deve conter exatamente 6 dígitos numéricos.")
+        return pin
+
+
+class RedefinirSenhaRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=256)
+    nova_senha: str = Field(min_length=8, max_length=72)
+    confirmar_senha: str = Field(min_length=8, max_length=72)
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_complexidade_senha_reset(cls, senha: str) -> str:
+        if len(senha.encode("utf-8")) > 72:
+            raise ValueError("A nova senha não pode exceder 72 bytes.")
+        if (
+            len(senha) < 8
+            or not any(caractere.isupper() for caractere in senha)
+            or not any(caractere.islower() for caractere in senha)
+            or not any(caractere.isdecimal() for caractere in senha)
+            or not any(
+                not caractere.isalnum() and not caractere.isspace()
+                for caractere in senha
+            )
+        ):
+            raise ValueError(
+                "A nova senha deve ter no mínimo 8 caracteres, com letra maiúscula, "
+                "letra minúscula, número e caractere especial."
+            )
+        return senha
+
+    @model_validator(mode="after")
+    def validar_confirmacao_senha_reset(self):
+        if self.nova_senha != self.confirmar_senha:
+            raise ValueError("A confirmação da nova senha não confere.")
+        return self
+
 
 class ResetSenhaResponse(BaseModel):
     notificacao_id: str

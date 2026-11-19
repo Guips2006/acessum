@@ -2,7 +2,8 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Camera, LockKeyhole, Upload } from 'lucide-react';
 import { AuthContext } from './contexts/AuthContext';
 import LoadingSpinner from './components/LoadingSpinner';
-import { dataNascimentoParaIso, formatarDataNascimento, formatarRg, isoParaData } from './utils/formatosCadastro';
+import { dataNascimentoParaIso, formatarDataNascimento, isoParaData } from './utils/formatosCadastro';
+import { mascararRG } from './utils/mascaras';
 
 const TAMANHO_MAXIMO_AVATAR = 5 * 1024 * 1024;
 const TIPOS_AVATAR = ['image/jpeg', 'image/png'];
@@ -206,7 +207,7 @@ export default function MeuPerfil({ voltar }) {
           </label>
           <label htmlFor="reset-rg">
             RG cadastrado
-            <input id="reset-rg" name="rg" autoComplete="off" maxLength={30} placeholder="00.000.000-0" value={rgVerificacao} onChange={evento => setRgVerificacao(formatarRg(evento.target.value))} required />
+            <input id="reset-rg" name="rg" autoComplete="off" maxLength={12} placeholder="00.000.000-X" value={rgVerificacao} onChange={evento => setRgVerificacao(mascararRG(evento.target.value))} required />
           </label>
           <label htmlFor="reset-birth-date">
             Data de nascimento cadastrada
@@ -276,8 +277,9 @@ export default function MeuPerfil({ voltar }) {
             name="rg"
             autoComplete="off"
             value={rg}
-            onChange={evento => setRg(evento.target.value)}
-            maxLength={30}
+            onChange={evento => setRg(mascararRG(evento.target.value))}
+            placeholder="00.000.000-X"
+            maxLength={12}
             required
           />
         </label>
