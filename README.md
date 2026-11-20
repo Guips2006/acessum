@@ -1,4 +1,4 @@
-cd frontend# Acessum
+# Acessum
 
 Sistema de gestão de acesso e utilização de laboratórios. O Acessum centraliza o cadastro de utilizadores, laboratórios e equipamentos, a consulta de disponibilidade, o fluxo de reservas e o relato de problemas.
 
