@@ -2,7 +2,7 @@ import re
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 def normalizar_rg_validado(rg: str | None) -> str | None:
@@ -72,7 +72,30 @@ class UsuarioCriar(UsuarioBase):
     cpf: str = Field(min_length=11, max_length=14)
     rg: str = Field(min_length=1, max_length=12)
     data_nascimento: date
-    senha: str = Field(min_length=12, max_length=72)
+    senha: str = Field(
+        min_length=12,
+        max_length=72,
+        description=(
+            "Senha da conta com no mínimo 12 caracteres e máximo de 72 bytes "
+            "para compatibilidade com bcrypt."
+        ),
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "nome": "Ana Martins",
+                    "email": "ana.martins@example.org",
+                    "perfil": "ALUNO",
+                    "cpf": "529.982.247-25",
+                    "rg": "12.345.678-9",
+                    "data_nascimento": "2000-01-15",
+                    "senha": "ExemploForte#2026",
+                }
+            ]
+        }
+    )
 
     @field_validator("senha")
     @classmethod
@@ -285,8 +308,16 @@ class MensagemGenericaResponse(BaseModel):
 
 class EquipamentoBase(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
-    descricao: str | None = Field(default=None, max_length=500)
-    laboratorio_id: str = Field(min_length=1, max_length=36)
+    descricao: str | None = Field(
+        default=None,
+        max_length=500,
+        description="Descrição opcional do equipamento.",
+    )
+    laboratorio_id: str = Field(
+        min_length=1,
+        max_length=36,
+        description="ID de um laboratório ativo, obtido em GET /api/laboratorios/.",
+    )
 
     @field_validator("nome")
     @classmethod
@@ -305,7 +336,17 @@ class EquipamentoBase(BaseModel):
         return descricao or None
 
 class EquipamentoCriar(EquipamentoBase):
-    pass
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "nome": "Projetor Epson PowerLite X49",
+                    "descricao": "Projetor multimédia com entrada HDMI.",
+                    "laboratorio_id": "2cace38d-b322-5d6b-9982-abc30ce9f903",
+                }
+            ]
+        }
+    )
 
 class EquipamentoResponse(EquipamentoBase):
     id: str
@@ -320,9 +361,26 @@ class EquipamentoStatusResponse(BaseModel):
 
 class RelatoProblemaCriar(BaseModel):
     tipo_recurso: Literal["LABORATORIO", "EQUIPAMENTO"]
-    recurso_id: str = Field(min_length=1, max_length=36)
+    recurso_id: str = Field(
+        min_length=1,
+        max_length=36,
+        description="ID do recurso escolhido, obtido na listagem de laboratórios ou equipamentos.",
+    )
     descricao: str = Field(min_length=1, max_length=2000)
     nivel_severidade: Literal["BAIXA", "MEDIA", "ALTA"]
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "tipo_recurso": "EQUIPAMENTO",
+                    "recurso_id": "25503446-4e7c-52c6-ba86-dd201087b26b",
+                    "descricao": "A leitura do canal 2 varia durante o teste.",
+                    "nivel_severidade": "MEDIA",
+                }
+            ]
+        }
+    )
 
     @field_validator("descricao")
     @classmethod
@@ -347,6 +405,10 @@ class RelatoProblemaResponse(BaseModel):
 class RelatoProblemaStatusAtualizar(BaseModel):
     status: Literal["ABERTO", "RESOLVIDO"]
 
+    model_config = ConfigDict(
+        json_schema_extra={"examples": [{"status": "RESOLVIDO"}]}
+    )
+
 class BlocoDisponibilidade(BaseModel):
     inicio: datetime
     fim: datetime
@@ -362,10 +424,31 @@ class DisponibilidadeResponse(BaseModel):
     blocos_ocupados: list[BlocoDisponibilidade]
 
 class ReservaCriar(BaseModel):
-    recurso_id: str = Field(min_length=1, max_length=36)
-    data_inicio: datetime
-    data_fim: datetime
+    recurso_id: str = Field(
+        min_length=1,
+        max_length=36,
+        description="ID do laboratório ativo, obtido em GET /api/laboratorios/.",
+    )
+    data_inicio: datetime = Field(
+        description="Início da reserva em ISO 8601, incluindo fuso horário."
+    )
+    data_fim: datetime = Field(
+        description="Fim da reserva em ISO 8601, incluindo fuso horário."
+    )
     finalidade: str = Field(min_length=1, max_length=500)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "recurso_id": "2cace38d-b322-5d6b-9982-abc30ce9f903",
+                    "data_inicio": "2030-01-15T10:00:00Z",
+                    "data_fim": "2030-01-15T12:00:00Z",
+                    "finalidade": "Aula prática de programação em Python.",
+                }
+            ]
+        }
+    )
 
     @field_validator("data_inicio", "data_fim")
     @classmethod
@@ -402,6 +485,21 @@ class ReservaAnaliseAtualizar(BaseModel):
     status: Literal["APROVADA", "RECUSADA"]
     motivo_recusa: str | None = Field(default=None, max_length=500)
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "status": "APROVADA",
+                    "motivo_recusa": None,
+                },
+                {
+                    "status": "RECUSADA",
+                    "motivo_recusa": "Conflito com uma atividade curricular.",
+                },
+            ]
+        }
+    )
+
     @field_validator("motivo_recusa")
     @classmethod
     def normalizar_motivo_recusa(cls, motivo: str | None) -> str | None:
@@ -433,6 +531,24 @@ class ReservaHistoricoResponse(BaseModel):
     motivo_recusa: str | None
     data_fim_real: datetime | None
 
+
+class LoginResponse(BaseModel):
+    token: str = Field(description="JWT para uso no cabeçalho Authorization: Bearer.")
+    nome: str
+    email: str
+    perfil: Literal["ADMINISTRADOR", "PROFESSOR", "ALUNO"]
+
+
+class UsuarioLogadoResponse(BaseModel):
+    id: str
+    nome: str
+    email: str
+    perfil: Literal["ADMINISTRADOR", "PROFESSOR", "ALUNO"]
+
+
+class HealthResponse(BaseModel):
+    mensagem: str
+
 class LaboratorioBase(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     capacidade: int = Field(gt=0)
@@ -446,7 +562,16 @@ class LaboratorioBase(BaseModel):
         return nome
 
 class LaboratorioCriar(LaboratorioBase):
-    pass
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "nome": "Laboratório de Redes e Sistemas - Anexo",
+                    "capacidade": 24,
+                }
+            ]
+        }
+    )
 
 class LaboratorioResponse(LaboratorioBase):
     id: str

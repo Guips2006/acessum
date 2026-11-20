@@ -63,11 +63,23 @@ def serializar_reserva_historico(reserva: models.Reserva) -> schemas.ReservaHist
     "/disponibilidade",
     response_model=schemas.DisponibilidadeResponse,
     dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
+    summary="Consultar disponibilidade",
 )
 def consultar_disponibilidade(
-    recurso_id: str = Query(min_length=1, max_length=36),
-    data_inicio: datetime = Query(),
-    data_fim: datetime = Query(),
+    recurso_id: str = Query(
+        min_length=1,
+        max_length=36,
+        description="ID do laboratório ativo retornado por GET /api/laboratorios/.",
+        examples=["2cace38d-b322-5d6b-9982-abc30ce9f903"],
+    ),
+    data_inicio: datetime = Query(
+        description="Início do intervalo em ISO 8601, incluindo fuso horário.",
+        examples=["2030-01-15T08:00:00Z"],
+    ),
+    data_fim: datetime = Query(
+        description="Fim do intervalo em ISO 8601, incluindo fuso horário.",
+        examples=["2030-01-15T18:00:00Z"],
+    ),
     db: Session = Depends(get_db),
 ):
     """Calcula intervalos livres e ocupados de um laboratório no período."""
@@ -141,6 +153,7 @@ def consultar_disponibilidade(
     "/minhas-reservas",
     response_model=list[schemas.ReservaHistoricoResponse],
     dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
+    summary="Listar minhas reservas",
 )
 def listar_minhas_reservas(
     usuario: models.Usuario = Depends(obter_usuario_logado),
@@ -161,6 +174,7 @@ def listar_minhas_reservas(
     "/pendentes",
     response_model=list[schemas.ReservaAnaliseResponse],
     dependencies=[Depends(exigir_perfil(["PROFESSOR"]))],
+    summary="Listar reservas pendentes",
 )
 def listar_reservas_pendentes(db: Session = Depends(get_db)):
     """Lista as solicitações de reserva que aguardam análise do professor."""
@@ -181,6 +195,7 @@ def listar_reservas_pendentes(db: Session = Depends(get_db)):
     "/{reserva_id}/analise",
     response_model=schemas.ReservaAnaliseResponse,
     dependencies=[Depends(exigir_perfil(["PROFESSOR"]))],
+    summary="Analisar solicitação de reserva",
 )
 def analisar_reserva(
     reserva_id: str,
@@ -271,6 +286,7 @@ def analisar_reserva(
     "/{reserva_id}/cancelar",
     response_model=schemas.ReservaHistoricoResponse,
     dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
+    summary="Cancelar minha reserva",
 )
 def cancelar_reserva(
     reserva_id: str,
@@ -319,6 +335,7 @@ def cancelar_reserva(
     "/{reserva_id}/checkin",
     response_model=schemas.ReservaHistoricoResponse,
     dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
+    summary="Fazer check-in",
 )
 def fazer_checkin(
     reserva_id: str,
@@ -400,6 +417,7 @@ def fazer_checkin(
     "/{reserva_id}/encerrar",
     response_model=schemas.ReservaHistoricoResponse,
     dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
+    summary="Encerrar reserva em uso",
 )
 def encerrar_reserva(
     reserva_id: str,
@@ -460,6 +478,7 @@ def encerrar_reserva(
     response_model=schemas.ReservaResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(exigir_perfil(["ALUNO", "PROFESSOR"]))],
+    summary="Solicitar reserva",
 )
 def solicitar_reserva(
     dados: schemas.ReservaCriar,

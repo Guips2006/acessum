@@ -14,10 +14,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      response => response,
+      error => {
+        if (
+          error.response?.status === 403
+          && error.response?.data?.detail === 'É obrigatório cadastrar o PIN de segurança antes de acessar o sistema.'
+        ) {
+          setUser(current => current ? { ...current, pin_definido: false } : current);
+        }
+        return Promise.reject(error);
+      },
+    );
+    return () => api.interceptors.response.eject(interceptor);
+  }, []);
+
+  useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       api.defaults.headers.Authorization = `Bearer ${token}`;
-      // 2. Coloque o /api direto aqui na chamada
       api.get('/api/auth/me') 
         .then(response => setUser(response.data))
         .catch(() => logout())
@@ -43,7 +58,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return { 
         success: false, 
-        message: error.response?.data?.detail || 'Erro ao iniciar sessão' 
+        message: error.response?.data?.detail
+          || 'Não foi possível conectar à API. Verifique VITE_API_BASE_URL, se a API está em execução e se a porta está acessível.'
       };
     }
   };

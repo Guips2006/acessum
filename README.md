@@ -36,6 +36,12 @@ O frontend comunica com a API através do contexto de autenticação. O endereç
 
 No MVP, as reservas são feitas ao nível do laboratório. Os equipamentos são consultados como recursos associados ao laboratório, mas não são reservados independentemente.
 
+## API e Swagger
+
+Com o backend em execução, consulte <http://127.0.0.1:8000/docs>. A documentação agrupa as operações por domínio e inclui exemplos ilustrativos dos corpos de requisição; os exemplos de credenciais não correspondem a contas reais.
+
+As operações protegidas usam `Authorization: Bearer <token>`. Faça login em `POST /api/auth/login` e informe o JWT no botão **Authorize** do Swagger. As tags da API são Autenticação, Gestão de Usuários, Laboratórios, Equipamentos, Reservas, Relatos de Problemas e Sistema.
+
 ## Equipa
 
 Projeto desenvolvido na disciplina de **Modelagem de Sistemas** da Universidade Presbiteriana Mackenzie.
@@ -106,17 +112,21 @@ Copy-Item .env.example .env.local
 
 O frontend estará disponível em <http://localhost:5173>. Se alterar a origem da API no ficheiro `.env.local`, reinicie o servidor Vite para que a configuração seja recarregada.
 
-### Acesso inicial de desenvolvimento
+No Codespaces, `127.0.0.1` no navegador aponta para o computador local, não para o ambiente remoto. Configure `VITE_API_BASE_URL` com a URL encaminhada da porta 8000 do Codespace e reinicie o Vite.
 
-O backend disponibiliza a rota `GET /setup` para criar utilizadores de teste:
+### Dados de desenvolvimento
 
-| Perfil | E-mail | Senha |
+O Swagger não publica uma rota de inicialização destrutiva nem credenciais padrão. Para carregar o conjunto sintético versionado, execute `python seed_dados_iniciais.py` a partir de `backend/`. O script preserva as contas ativas existentes de Guilherme, Rebeca e Arthur, remove somente as contas e os laboratórios legados conhecidos e cria laboratórios, equipamentos, reservas e relatos. Se os registros legados tiverem reservas ou relatos associados, a carga aborta sem removê-los. Utilize apenas numa base de desenvolvimento.
+
+As contas existentes são:
+
+| Nome | E-mail | Perfil |
 | --- | --- | --- |
-| Administrador | `admin@acessum.com` | `admin123` |
-| Professor | `prof@acessum.com` | `prof123` |
-| Aluno | `aluno@acessum.com` | `aluno123` |
+| Guilherme | `guilherme@acessum.com` | Administrador |
+| Rebeca | `rebeca@acessum.com` | Aluno |
+| Arthur | `arthur@acessum.com` | Professor |
 
-Para a utilizar, abra <http://127.0.0.1:8000/setup> **apenas numa base de dados descartável de desenvolvimento**. Esta rota remove os utilizadores existentes quando há menos de três contas; não a execute numa base com dados que queira preservar.
+As senhas não podem ser consultadas porque são armazenadas como hashes. Para redefinir a senha do administrador localmente, execute `python redefinir_senha_admin_dev.py` a partir de `backend/` e informe a nova senha nos prompts. A digitação fica oculta: escreva a senha mesmo sem vê-la e pressione Enter. O utilitário não grava a senha em arquivos; utilize-o apenas em desenvolvimento.
 
 ## Estrutura do projeto
 
@@ -128,6 +138,6 @@ docs/      Arquitetura, especificações e documentação do domínio
 
 ## Documentação
 
-- API: <http://127.0.0.1:8000/docs>, com o backend em execução.
+- API/Swagger: <http://127.0.0.1:8000/docs>, com o backend em execução.
 - Especificações: [`docs/specs/`](docs/specs/).
 - Arquitetura e padrões: [`docs/ARQUITETURA_LAYOUT.md`](docs/ARQUITETURA_LAYOUT.md).

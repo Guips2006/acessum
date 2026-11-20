@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/laboratorios", tags=["Laboratórios"])
     "/",
     response_model=list[schemas.LaboratorioResponse],
     dependencies=[Depends(obter_usuario_logado)],
+    summary="Listar laboratórios",
 )
 def listar_laboratorios(db: Session = Depends(get_db)):
     """Lista os laboratórios para qualquer usuário autenticado."""
@@ -28,6 +29,7 @@ def listar_laboratorios(db: Session = Depends(get_db)):
     response_model=schemas.LaboratorioResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+    summary="Cadastrar laboratório",
 )
 def criar_laboratorio(
     lab: schemas.LaboratorioCriar,
@@ -74,6 +76,7 @@ def criar_laboratorio(
     "/{lab_id}/status",
     response_model=schemas.LaboratorioStatusResponse,
     dependencies=[Depends(exigir_perfil(["ADMINISTRADOR"]))],
+    summary="Alternar estado do laboratório",
 )
 def alternar_status_laboratorio(
     lab_id: str,
